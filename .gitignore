@@ -1,0 +1,37 @@
+questions.md
+spec.md
+.env
+# Binaries
+
+*.exe
+*.out
+*.test
+
+# Build and cache directories
+/bin/
+/build/
+dist/
+tmp/
+*.swp
+
+# Go modules
+pkg/
+vendor/
+
+# Logs
+*.log
+
+# IDE / Editor
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files (секреты в .env НЕ коммитим)
+.env.local
+
+# Docker
+docker-data/
