@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: replay_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-replay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replay}
+      POSTGRES_DB: ${POSTGRES_DB:-replay}
+    ports:
+      - "5432:5432"
+    volumes:
+      - replay_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-replay} -d ${POSTGRES_DB:-replay}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    image: migrate/migrate:v4.16.2
+    container_name: replay_migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://${POSTGRES_USER:-replay}:${POSTGRES_PASSWORD:-replay}@postgres:5432/${POSTGRES_DB:-replay}?sslmode=disable",
+      "up"
+    ]
+    volumes:
+      - ../../server/migrations:/migrations:ro
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: replay_api
+    env_file:
+      - ../../.env
+    environment:
+      DB_DSN: postgres://${POSTGRES_USER:-replay}:${POSTGRES_PASSWORD:-replay}@postgres:5432/${POSTGRES_DB:-replay}?sslmode=disable
+      STORAGE_DIR: /app/storage
+      GIN_MODE: release
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    volumes:
+      - replay_storage:/app/storage
+
+volumes:
+  replay_pg_data:
+  replay_storage:
