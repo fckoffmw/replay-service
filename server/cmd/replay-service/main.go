@@ -1,18 +1,38 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
-	"os"
+	"time"
 
+	"github.com/fckoffmw/replay-service/server/config"
+	"github.com/fckoffmw/replay-service/server/internal/database"
+	"github.com/fckoffmw/replay-service/server/internal/repository"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	port := "8080"
-	if p := os.Getenv("PORT"); p != "" {
-		port = p
+	// Загружаем конфигурацию из .env файла
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Подключаемся к базе данных
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	db, err := database.Connect(ctx, cfg.DBDSN)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	log.Println("Successfully connected to database")
+
+	// Создаем репозиторий для работы с реплеями
+	replayRepo := repository.NewReplayRepository(db)
 
 	r := gin.Default()
 
@@ -20,11 +40,16 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Mock: список реплеев
+	// Список реплеев из базы данных
 	r.GET("/replays", func(c *gin.Context) {
-		c.JSON(http.StatusOK, []gin.H{
-			{"id": "11111111-1111-1111-1111-111111111111", "original_name": "example.rep", "compression": "gzip", "compressed": true},
-		})
+		replays, err := replayRepo.GetAll(c.Request.Context())
+		if err != nil {
+			log.Printf("Failed to get replays: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get replays"})
+			return
+		}
+
+		c.JSON(http.StatusOK, replays)
 	})
 
 	// Mock: получить реплей
@@ -39,7 +64,7 @@ func main() {
 		c.JSON(http.StatusCreated, gin.H{"id": "22222222-2222-2222-2222-222222222222"})
 	})
 
-	if err := r.Run(":" + port); err != nil {
+	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)
 	}
 }
