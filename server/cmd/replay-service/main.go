@@ -8,6 +8,7 @@ import (
 
 	"github.com/fckoffmw/replay-service/server/config"
 	"github.com/fckoffmw/replay-service/server/internal/database"
+	"github.com/fckoffmw/replay-service/server/internal/logger"
 	"github.com/fckoffmw/replay-service/server/internal/repository"
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +19,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	logger := logger.NewSlog(cfg.LogLevel)
+	logger.Info("logger created!")
+	logger.Debug("AHAHHA")
 
 	// Подключаемся к базе данных
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

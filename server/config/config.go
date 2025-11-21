@@ -13,6 +13,7 @@ type Config struct {
 	Port       string
 	DBDSN      string
 	StorageDir string
+	LogLevel   string
 }
 
 // Load загружает конфигурацию из .env файла и переменных окружения
@@ -39,6 +40,7 @@ func Load() (*Config, error) {
 		Port:       getEnv("PORT", "8080"),
 		DBDSN:      getEnv("DB_DSN", ""),
 		StorageDir: getEnv("STORAGE_DIR", "./storage"),
+		LogLevel:   getEnv("LOG_LEVEL", "debug"),
 	}
 
 	if cfg.DBDSN == "" {
