@@ -1,282 +1,294 @@
-# REST API Спецификация
+# REST API Specification
 
-## Эндпоинты для работы с реплеями
+Base URL: `http://localhost:8080/api/v1`
 
-### 1. Загрузка реплея
+Все запросы требуют заголовок `X-User-ID` с UUID пользователя.
+По умолчанию используется: `00000000-0000-0000-0000-000000000001`
+
+## Games
+
+### Получить список игр
+
 ```http
-POST /replays/upload
-Content-Type: multipart/form-data
+GET /api/v1/games
 ```
 
-**Параметры:**
-- `file` (required) - файл реплея
-- `title` (optional) - название реплея
-- `game_name` (optional) - название игры
-
-**Пример запроса:**
-```bash
-curl -X POST http://localhost:8080/replays/upload \
-  -F "file=@replay.rep" \
-  -F "title=Epic comeback" \
-  -F "game_name=Dota 2"
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
 ```
 
-**Ответ (201 Created):**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "title": "Epic comeback",
-  "game_name": "Dota 2",
-  "original_name": "replay.rep",
-  "compression": "gzip",
-  "compressed": true
-}
-```
-
----
-
-### 2. Получить список всех реплеев
-```http
-GET /replays
-```
-
-**Query параметры:**
-- `game` (optional) - фильтр по названию игры
-
-**Примеры запросов:**
-```bash
-# Все реплеи
-curl http://localhost:8080/replays
-
-# Реплеи конкретной игры
-curl http://localhost:8080/replays?game=dota-2
-```
-
-**Ответ (200 OK):**
+**Response 200:**
 ```json
 [
   {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "title": "Epic comeback",
-    "game_name": "Dota 2",
-    "original_name": "replay.rep",
-    "compression": "gzip",
-    "compressed": true
+    "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "name": "Counter-Strike 2",
+    "created_at": "2025-11-09T14:00:00Z",
+    "replay_count": 2
   },
   {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "title": "First win",
-    "game_name": "Counter-Strike",
-    "original_name": "match_01.rep",
-    "compression": "gzip",
-    "compressed": true
+    "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "name": "Dota 2",
+    "created_at": "2025-11-14T14:00:00Z",
+    "replay_count": 1
   }
 ]
 ```
 
----
+### Создать игру
 
-### 3. Получить конкретный реплей
 ```http
-GET /replays/:id
-```
-
-**Пример запроса:**
-```bash
-curl http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000
-```
-
-**Ответ (200 OK):**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "title": "Epic comeback",
-  "game_name": "Dota 2",
-  "original_name": "replay.rep",
-  "compression": "gzip",
-  "compressed": true,
-  "download_url": "/replays/550e8400-e29b-41d4-a716-446655440000/download"
-}
-```
-
----
-
-### 4. Скачать файл реплея
-```http
-GET /replays/:id/download
-```
-
-**Пример запроса:**
-```bash
-curl -O http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000/download
-```
-
-**Ответ (200 OK):**
-- Content-Type: `application/gzip` или `application/octet-stream`
-- Content-Disposition: `attachment; filename="epic-comeback.rep.gz"`
-- Body: бинарный файл
-
----
-
-### 5. Обновить метаданные реплея
-```http
-PATCH /replays/:id
+POST /api/v1/games
 Content-Type: application/json
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
 ```
 
 **Body:**
 ```json
 {
-  "title": "New title",
-  "game_name": "Dota 2"
+  "name": "Valorant"
 }
 ```
 
-**Пример запроса:**
-```bash
-curl -X PATCH http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Updated title", "game_name": "Dota 2"}'
-```
-
-**Ответ (200 OK):**
+**Response 201:**
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "title": "Updated title",
-  "game_name": "Dota 2",
-  "original_name": "replay.rep",
-  "compression": "gzip",
-  "compressed": true
+  "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  "name": "Valorant",
+  "created_at": "2025-11-29T15:00:00Z"
 }
 ```
 
----
+### Удалить игру
 
-### 6. Удалить реплей
 ```http
-DELETE /replays/:id
+DELETE /api/v1/games/{game_id}
 ```
 
-**Пример запроса:**
-```bash
-curl -X DELETE http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
 ```
 
-**Ответ (204 No Content)**
-
----
-
-## Эндпоинты для работы с играми
-
-### 7. Получить список игр
-```http
-GET /games
-```
-
-**Пример запроса:**
-```bash
-curl http://localhost:8080/games
-```
-
-**Ответ (200 OK):**
+**Response 200:**
 ```json
 {
-  "games": [
-    {
-      "name": "Dota 2",
-      "normalized_name": "dota-2",
-      "replay_count": 15
-    },
-    {
-      "name": "Counter-Strike",
-      "normalized_name": "counter-strike",
-      "replay_count": 8
-    }
-  ]
+  "message": "deleted"
 }
 ```
 
----
+Удаляет игру и все её реплеи (файлы и записи в БД).
 
-### 8. Получить статистику по игре
+## Replays
+
+### Получить реплеи игры
+
 ```http
-GET /games/:game_name
+GET /api/v1/games/{game_id}/replays?limit=5
 ```
 
-**Пример запроса:**
-```bash
-curl http://localhost:8080/games/dota-2
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
 ```
 
-**Ответ (200 OK):**
+**Query Parameters:**
+- `limit` (optional, default: 5) - количество реплеев
+
+**Response 200:**
 ```json
-{
-  "name": "Dota 2",
-  "normalized_name": "dota-2",
-  "replay_count": 15,
-  "total_size_bytes": 524288000,
-  "latest_replay": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
+[
+  {
+    "id": "10000000-0000-0000-0000-000000000001",
     "title": "Epic comeback",
-    "uploaded_at": "2025-11-28T10:30:00Z"
+    "original_name": "match_2024_01_15.rep",
+    "size_bytes": 1048576,
+    "uploaded_at": "2025-11-24T14:00:00Z",
+    "compression": "none",
+    "compressed": false,
+    "game_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
   }
+]
+```
+
+### Получить детали реплея
+
+```http
+GET /api/v1/replays/{replay_id}
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Response 200:**
+```json
+{
+  "id": "10000000-0000-0000-0000-000000000001",
+  "title": "Epic comeback",
+  "original_name": "match_2024_01_15.rep",
+  "comment": "Amazing clutch in overtime",
+  "size_bytes": 1048576,
+  "uploaded_at": "2025-11-24T14:00:00Z",
+  "compression": "none",
+  "compressed": false,
+  "game_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "game_name": "Counter-Strike 2"
 }
 ```
 
----
+### Загрузить реплей
 
-## Коды ошибок
+```http
+POST /api/v1/games/{game_id}/replays
+Content-Type: multipart/form-data
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Form Data:**
+- `file` (required) - файл реплея
+- `title` (optional) - название реплея
+- `comment` (optional) - комментарий
+
+**Response 201:**
+```json
+{
+  "id": "20000000-0000-0000-0000-000000000001"
+}
+```
+
+### Обновить реплей
+
+```http
+PUT /api/v1/replays/{replay_id}
+Content-Type: multipart/form-data
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Form Data:**
+- `title` (optional) - новое название
+- `comment` (optional) - новый комментарий
+
+**Response 200:**
+```json
+{
+  "message": "updated"
+}
+```
+
+### Удалить реплей
+
+```http
+DELETE /api/v1/replays/{replay_id}
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Response 200:**
+```json
+{
+  "message": "deleted"
+}
+```
+
+### Скачать файл реплея
+
+```http
+GET /api/v1/replays/{replay_id}/file
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Response 200:**
+- Content-Type: `application/octet-stream`
+- Content-Disposition: `attachment; filename="original_name.rep"`
+- Body: binary file
+
+## Health Check
+
+```http
+GET /healthz
+```
+
+**Response 200:**
+```json
+{
+  "status": "ok"
+}
+```
+
+## Error Responses
 
 ### 400 Bad Request
 ```json
 {
-  "error": "Invalid request",
-  "details": "game_name is required"
+  "error": "invalid game_id"
 }
 ```
 
 ### 404 Not Found
 ```json
 {
-  "error": "Replay not found",
-  "replay_id": "550e8400-e29b-41d4-a716-446655440000"
+  "error": "replay not found"
 }
 ```
 
 ### 500 Internal Server Error
 ```json
 {
-  "error": "Internal server error",
-  "message": "Failed to save file"
+  "error": "failed to create replay"
 }
 ```
 
----
+## Examples
 
-## Примеры использования
+### Создать игру и загрузить реплей
 
-### Загрузить реплей с метаданными
 ```bash
-curl -X POST http://localhost:8080/replays/upload \
-  -F "file=@my_game.rep" \
+# 1. Создать игру
+GAME_ID=$(curl -s -X POST http://localhost:8080/api/v1/games \
+  -H "X-User-ID: 00000000-0000-0000-0000-000000000001" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Dota 2"}' | jq -r '.id')
+
+# 2. Загрузить реплей
+curl -X POST http://localhost:8080/api/v1/games/$GAME_ID/replays \
+  -H "X-User-ID: 00000000-0000-0000-0000-000000000001" \
+  -F "file=@replay.rep" \
   -F "title=My best game" \
-  -F "game_name=Dota 2"
+  -F "comment=Won with rampage"
 ```
 
-### Получить все реплеи Dota 2
+### Получить все реплеи игры
+
 ```bash
-curl http://localhost:8080/replays?game=dota-2
+curl -H "X-User-ID: 00000000-0000-0000-0000-000000000001" \
+  http://localhost:8080/api/v1/games/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/replays?limit=10
 ```
 
 ### Скачать реплей
-```bash
-curl -O -J http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000/download
-```
 
-### Переименовать реплей
 ```bash
-curl -X PATCH http://localhost:8080/replays/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Best game ever"}'
+curl -H "X-User-ID: 00000000-0000-0000-0000-000000000001" \
+  -O -J http://localhost:8080/api/v1/replays/10000000-0000-0000-0000-000000000001/file
 ```

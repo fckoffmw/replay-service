@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .user-info label {
+            font-weight: 500;
+        }
+
+        .user-info input {
+            flex: 1;
+            max-width: 400px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 500px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .game-list {
+            list-style: none;
+        }
+
+        .game-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid #3498db;
+        }
+
+        .game-item:hover {
+            background: #e9ecef;
+        }
+
+        .game-item.active {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+
+        .game-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .game-count {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .replay-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .replay-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #27ae60;
+        }
+
+        .replay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .replay-title {
+            font-weight: 500;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .replay-info {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .replay-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .upload-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Replay Service</h1>
+            <p>Управление игровыми реплеями</p>
+            <div class="user-info">
+                <label>User ID:</label>
+                <input type="text" id="userId" value="00000000-0000-0000-0000-000000000001">
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0;">Игры</h2>
+                    <button class="btn btn-success btn-small" onclick="showCreateGameModal()">+ Добавить</button>
+                </div>
+                <ul class="game-list" id="gameList">
+                    <li class="loading">Загрузка...</li>
+                </ul>
+            </aside>
+
+            <main class="content">
+                <div id="contentArea">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>Выберите игру из списка слева</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="createGameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать игру</h2>
+            </div>
+            <div class="form-group">
+                <label>Название игры</label>
+                <input type="text" id="newGameName" placeholder="Например: Dota 2">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideCreateGameModal()">Отмена</button>
+                <button class="btn btn-success" onclick="createGame()">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        let currentGameId = null;
+
+        function getUserId() {
+            return document.getElementById('userId').value;
+        }
+
+        function showCreateGameModal() {
+            document.getElementById('createGameModal').classList.add('active');
+            document.getElementById('newGameName').value = '';
+            document.getElementById('newGameName').focus();
+        }
+
+        function hideCreateGameModal() {
+            document.getElementById('createGameModal').classList.remove('active');
+        }
+
+        async function loadGames() {
+            try {
+                const response = await fetch(`${API_BASE}/games`, {
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const games = await response.json();
+                
+                const gameList = document.getElementById('gameList');
+                
+                if (!games || games.length === 0) {
+                    gameList.innerHTML = '<li class="empty-state" style="padding: 20px; text-align: center; color: #999;">Нет игр</li>';
+                    return;
+                }
+
+                gameList.innerHTML = games.map(game => `
+                    <li class="game-item" onclick="selectGame('${game.id}', '${game.name}')" id="game-${game.id}">
+                        <div class="game-name">${game.name}</div>
+                        <div class="game-count">${game.replay_count} реплеев</div>
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading games:', error);
+                document.getElementById('gameList').innerHTML = '<li style="color: red; padding: 10px;">Ошибка загрузки</li>';
+            }
+        }
+
+        async function createGame() {
+            const name = document.getElementById('newGameName').value.trim();
+            if (!name) {
+                alert('Введите название игры');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/games`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': getUserId()
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (response.ok) {
+                    hideCreateGameModal();
+                    await loadGames();
+                } else {
+                    alert('Ошибка создания игры');
+                }
+            } catch (error) {
+                console.error('Error creating game:', error);
+                alert('Ошибка создания игры');
+            }
+        }
+
+        async function selectGame(gameId, gameName) {
+            currentGameId = gameId;
+            
+            document.querySelectorAll('.game-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById(`game-${gameId}`).classList.add('active');
+
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="loading">Загрузка реплеев...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${gameId}/replays?limit=100`, {
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const replays = await response.json() || [];
+
+                contentArea.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">${gameName}</h2>
+                        <button class="btn btn-danger btn-small" onclick="deleteGame('${gameId}', '${gameName}')">Удалить игру</button>
+                    </div>
+
+                    <div class="upload-form">
+                        <h3 style="margin-bottom: 15px;">Загрузить реплей</h3>
+                        <div class="form-group">
+                            <label>Файл</label>
+                            <input type="file" id="replayFile">
+                        </div>
+                        <div class="form-group">
+                            <label>Название (опционально)</label>
+                            <input type="text" id="replayTitle" placeholder="Например: Эпичная победа">
+                        </div>
+                        <div class="form-group">
+                            <label>Комментарий (опционально)</label>
+                            <textarea id="replayComment" placeholder="Описание реплея..."></textarea>
+                        </div>
+                        <button class="btn btn-success" onclick="uploadReplay()">Загрузить</button>
+                    </div>
+
+                    <h3 style="margin: 20px 0 15px 0;">Реплеи (${replays.length})</h3>
+                    <div class="replay-list" id="replayList">
+                        ${replays.length === 0 ? 
+                            '<div class="empty-state"><div class="empty-state-icon">📄</div><p>Нет реплеев</p></div>' :
+                            replays.map(replay => `
+                                <div class="replay-card">
+                                    <div class="replay-header">
+                                        <div class="replay-title">${replay.title || replay.original_name}</div>
+                                    </div>
+                                    <div class="replay-info">📁 ${replay.original_name}</div>
+                                    <div class="replay-info">💾 ${(replay.size_bytes / 1024).toFixed(2)} KB</div>
+                                    <div class="replay-info">📅 ${new Date(replay.uploaded_at).toLocaleString('ru-RU')}</div>
+                                    ${replay.comment ? `<div class="replay-info">💬 ${replay.comment}</div>` : ''}
+                                    <div class="replay-actions">
+                                        <button class="btn btn-primary btn-small" onclick="downloadReplay('${replay.id}')">Скачать</button>
+                                        <button class="btn btn-danger btn-small" onclick="deleteReplay('${replay.id}')">Удалить</button>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading replays:', error);
+                contentArea.innerHTML = '<div style="color: red; padding: 20px;">Ошибка загрузки реплеев</div>';
+            }
+        }
+
+        async function uploadReplay() {
+            if (!currentGameId) return;
+
+            const fileInput = document.getElementById('replayFile');
+            const title = document.getElementById('replayTitle').value;
+            const comment = document.getElementById('replayComment').value;
+
+            if (!fileInput.files[0]) {
+                alert('Выберите файл');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('title', title);
+            formData.append('comment', comment);
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${currentGameId}/replays`, {
+                    method: 'POST',
+                    headers: { 'X-User-ID': getUserId() },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('Upload error:', error);
+                    alert('Ошибка загрузки файла');
+                    return;
+                }
+
+                const activeGame = document.querySelector('.game-item.active');
+                if (activeGame && currentGameId) {
+                    const gameName = activeGame.querySelector('.game-name').textContent;
+                    await selectGame(currentGameId, gameName);
+                }
+                await loadGames();
+            } catch (error) {
+                console.error('Error uploading replay:', error);
+                alert('Ошибка загрузки файла: ' + error.message);
+            }
+        }
+
+        function downloadReplay(replayId) {
+            window.open(`${API_BASE}/replays/${replayId}/file`, '_blank');
+        }
+
+        async function deleteReplay(replayId) {
+            if (!confirm('Удалить этот реплей?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/replays/${replayId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-User-ID': getUserId() }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('Delete error:', error);
+                    alert('Ошибка удаления');
+                    return;
+                }
+
+                const activeGame = document.querySelector('.game-item.active');
+                if (activeGame && currentGameId) {
+                    const gameName = activeGame.querySelector('.game-name').textContent;
+                    await selectGame(currentGameId, gameName);
+                }
+                await loadGames();
+            } catch (error) {
+                console.error('Error deleting replay:', error);
+                alert('Ошибка удаления: ' + error.message);
+            }
+        }
+
+        async function deleteGame(gameId, gameName) {
+            if (!confirm(`Удалить игру "${gameName}" и все её реплеи?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${gameId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-User-ID': getUserId() }
+                });
+
+                if (response.ok) {
+                    currentGameId = null;
+                    document.getElementById('contentArea').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📁</div>
+                            <p>Выберите игру из списка слева</p>
+                        </div>
+                    `;
+                    await loadGames();
+                } else {
+                    alert('Ошибка удаления игры');
+                }
+            } catch (error) {
+                console.error('Error deleting game:', error);
+                alert('Ошибка удаления игры');
+            }
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>

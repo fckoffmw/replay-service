@@ -1,60 +1,102 @@
 ### REST API Examples
 ### Используйте этот файл в VS Code с расширением REST Client
 
-@baseUrl = http://localhost:8080
+@baseUrl = http://localhost:8080/api/v1
+@userId = 00000000-0000-0000-0000-000000000001
 
-### 1. Health Check
-GET {{baseUrl}}/healthz
+### Health Check
+GET http://localhost:8080/healthz
 
-### 2. Загрузить реплей с метаданными
-POST {{baseUrl}}/replays/upload
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+###
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="title"
+### 1. Получить список игр
+GET {{baseUrl}}/games
+X-User-ID: {{userId}}
 
-Epic comeback
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="game_name"
+###
 
-Dota 2
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="replay.rep"
-Content-Type: application/octet-stream
-
-< ./storage/2025/11/1488_replay.test
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
-
-### 3. Получить все реплеи
-GET {{baseUrl}}/replays
-
-### 4. Получить реплеи конкретной игры
-GET {{baseUrl}}/replays?game=dota-2
-
-### 5. Получить метаданные реплея
-# Замените ID на реальный
-GET {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
-
-### 6. Скачать файл реплея
-# Замените ID на реальный
-GET {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000/download
-
-### 7. Обновить метаданные реплея
-# Замените ID на реальный
-PATCH {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
+### 2. Создать новую игру
+POST {{baseUrl}}/games
+X-User-ID: {{userId}}
 Content-Type: application/json
 
 {
-  "title": "Updated title",
-  "game_name": "Dota 2"
+  "name": "Valorant"
 }
 
-### 8. Удалить реплей
-# Замените ID на реальный
-DELETE {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
+###
 
-### 9. Получить список игр
-GET {{baseUrl}}/games
+### 3. Получить реплеи игры (Counter-Strike 2)
+GET {{baseUrl}}/games/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/replays?limit=10
+X-User-ID: {{userId}}
 
-### 10. Получить статистику по игре
-GET {{baseUrl}}/games/dota-2
+###
+
+### 4. Получить реплеи игры (Dota 2)
+GET {{baseUrl}}/games/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/replays?limit=10
+X-User-ID: {{userId}}
+
+###
+
+### 5. Получить детали реплея
+GET {{baseUrl}}/replays/10000000-0000-0000-0000-000000000001
+X-User-ID: {{userId}}
+
+###
+
+### 6. Загрузить реплей (замените путь к файлу)
+POST {{baseUrl}}/games/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/replays
+X-User-ID: {{userId}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="title"
+
+My awesome replay
+------WebKitFormBoundary
+Content-Disposition: form-data; name="comment"
+
+This was an epic game!
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="replay.rep"
+Content-Type: application/octet-stream
+
+< ./test-file.txt
+------WebKitFormBoundary--
+
+###
+
+### 7. Обновить реплей
+PUT {{baseUrl}}/replays/10000000-0000-0000-0000-000000000001
+X-User-ID: {{userId}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="title"
+
+Updated title
+------WebKitFormBoundary
+Content-Disposition: form-data; name="comment"
+
+Updated comment
+------WebKitFormBoundary--
+
+###
+
+### 8. Скачать файл реплея
+GET {{baseUrl}}/replays/10000000-0000-0000-0000-000000000001/file
+X-User-ID: {{userId}}
+
+###
+
+### 9. Удалить реплей
+DELETE {{baseUrl}}/replays/10000000-0000-0000-0000-000000000001
+X-User-ID: {{userId}}
+
+###
+
+### 10. Удалить игру (и все её реплеи)
+DELETE {{baseUrl}}/games/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+X-User-ID: {{userId}}
+
+###

@@ -118,11 +118,23 @@ func (h *Handler) CreateReplay(c *gin.Context) {
 	log.Printf("[POST /games/%s/replays] file=%s, size=%d, title=%s, comment=%s",
 		gameID, file.Filename, file.Size, title, comment)
 
-	replayID := uuid.New()
+	replay := &models.Replay{
+		ID:           uuid.New(),
+		Title:        &title,
+		OriginalName: file.Filename,
+		SizeBytes:    file.Size,
+		Compression:  "none",
+		Compressed:   false,
+		Comment:      &comment,
+		GameID:       gameID,
+		UserID:       userID,
+	}
+
 	ext := filepath.Ext(file.Filename)
-	fileName := replayID.String() + ext
+	fileName := replay.ID.String() + ext
 	relPath := filepath.Join(userID.String(), gameID.String(), fileName)
 	fullPath := filepath.Join(h.storageDir, relPath)
+	replay.FilePath = relPath
 
 	log.Printf("[POST /games/%s/replays] Creating directory: %s", gameID, filepath.Dir(fullPath))
 
@@ -140,19 +152,7 @@ func (h *Handler) CreateReplay(c *gin.Context) {
 		return
 	}
 
-	replay := &models.Replay{
-		Title:        &title,
-		OriginalName: file.Filename,
-		FilePath:     relPath,
-		SizeBytes:    file.Size,
-		Compression:  "none",
-		Compressed:   false,
-		Comment:      &comment,
-		GameID:       gameID,
-		UserID:       userID,
-	}
-
-	log.Printf("[POST /games/%s/replays] Saving to database: replay_id=%s", gameID, replayID)
+	log.Printf("[POST /games/%s/replays] Saving to database: replay_id=%s", gameID, replay.ID)
 
 	if err := h.repo.CreateReplay(c.Request.Context(), replay); err != nil {
 		log.Printf("[POST /games/%s/replays] ERROR: failed to save to DB: %v", gameID, err)

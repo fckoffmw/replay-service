@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -52,7 +50,7 @@ services:
       - "8080:8080"
     volumes:
       - ../../storage:/app/storage
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "1000:1000"
 
 volumes:
   replay_pg_data:

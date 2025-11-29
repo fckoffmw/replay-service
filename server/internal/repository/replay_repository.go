@@ -34,7 +34,7 @@ func (r *ReplayRepository) GetGamesByUserID(ctx context.Context, userID uuid.UUI
 	}
 	defer rows.Close()
 
-	var games []models.Game
+	games := make([]models.Game, 0)
 	for rows.Next() {
 		var game models.Game
 		if err := rows.Scan(&game.ID, &game.Name, &game.CreatedAt, &game.ReplayCount); err != nil {
@@ -64,7 +64,7 @@ func (r *ReplayRepository) GetReplaysByGameID(ctx context.Context, gameID, userI
 	}
 	defer rows.Close()
 
-	var replays []models.Replay
+	replays := make([]models.Replay, 0)
 	for rows.Next() {
 		var replay models.Replay
 		if err := rows.Scan(&replay.ID, &replay.Title, &replay.OriginalName, &replay.UploadedAt, &replay.SizeBytes, &replay.Compression, &replay.Compressed, &replay.Comment, &replay.GameID); err != nil {
@@ -121,18 +121,18 @@ func (r *ReplayRepository) CreateGame(ctx context.Context, userID uuid.UUID, nam
 
 func (r *ReplayRepository) CreateReplay(ctx context.Context, replay *models.Replay) error {
 	query := `
-		INSERT INTO replays (title, original_name, file_path, size_bytes, compression, compressed, comment, game_id, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, uploaded_at
+		INSERT INTO replays (id, title, original_name, file_path, size_bytes, compression, compressed, comment, game_id, user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING uploaded_at
 	`
 
-	log.Printf("[REPO] CreateReplay: title=%v, file=%s, path=%s, size=%d, game_id=%s, user_id=%s",
-		replay.Title, replay.OriginalName, replay.FilePath, replay.SizeBytes, replay.GameID, replay.UserID)
+	log.Printf("[REPO] CreateReplay: id=%s, title=%v, file=%s, path=%s, size=%d, game_id=%s, user_id=%s",
+		replay.ID, replay.Title, replay.OriginalName, replay.FilePath, replay.SizeBytes, replay.GameID, replay.UserID)
 
 	err := r.db.Pool.QueryRow(ctx, query,
-		replay.Title, replay.OriginalName, replay.FilePath, replay.SizeBytes,
+		replay.ID, replay.Title, replay.OriginalName, replay.FilePath, replay.SizeBytes,
 		replay.Compression, replay.Compressed, replay.Comment, replay.GameID, replay.UserID,
-	).Scan(&replay.ID, &replay.UploadedAt)
+	).Scan(&replay.UploadedAt)
 
 	if err != nil {
 		log.Printf("[REPO] CreateReplay ERROR: %v", err)
