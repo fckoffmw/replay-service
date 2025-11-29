@@ -290,10 +290,61 @@ func (h *Handler) GetReplayFile(c *gin.Context) {
 	}
 	defer file.Close()
 
-	log.Printf("[%s/GetReplayFile] SUCCESS: serving %s", handlerPath, replay.OriginalName)
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", replay.OriginalName))
-	c.Header("Content-Type", "application/octet-stream")
+	ext := filepath.Ext(replay.OriginalName)
+	contentType := getContentType(ext)
+	
+	log.Printf("[%s/GetReplayFile] SUCCESS: serving %s (type: %s)", handlerPath, replay.OriginalName, contentType)
+	
+	if isVideoFile(ext) {
+		c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%s", replay.OriginalName))
+	} else {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", replay.OriginalName))
+	}
+	
+	c.Header("Content-Type", contentType)
+	c.Header("Accept-Ranges", "bytes")
+	c.Header("Cache-Control", "public, max-age=31536000")
+	
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Printf("[%s/GetReplayFile] ERROR: failed to stat file: %v", handlerPath, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+	
+	c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	io.Copy(c.Writer, file)
+}
+
+func getContentType(ext string) string {
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".ogg", ".ogv":
+		return "video/ogg"
+	case ".mov":
+		return "video/quicktime"
+	case ".avi":
+		return "video/x-msvideo"
+	case ".mkv":
+		return "video/x-matroska"
+	case ".m4v":
+		return "video/x-m4v"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func isVideoFile(ext string) bool {
+	videoExts := []string{".mp4", ".webm", ".ogg", ".ogv", ".mov", ".avi", ".mkv", ".m4v"}
+	for _, ve := range videoExts {
+		if ext == ve {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handler) CreateGame(c *gin.Context) {
