@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -15,6 +16,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	API_V1_PATH         = "/api/v1"
+	API_V1_GAMES_PATH   = API_V1_PATH + "/games"
+	API_V1_REPLAYS_PATH = API_V1_PATH + "/replays"
+)
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -22,7 +29,7 @@ func main() {
 	}
 
 	logger := logger.NewSlog(cfg.LogLevel)
-	_ = logger
+	logger.Info(fmt.Sprintf("CONFIG=  %s", cfg.String()))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -33,10 +40,10 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("Successfully connected to database")
+	logger.Info("Successfully connected to database")
 
 	replayRepo := repository.NewReplayRepository(db)
-	handler := handlers.NewHandler(replayRepo, cfg.StorageDir)
+	replayHandler := handlers.NewHandler(replayRepo, cfg.StorageDir)
 
 	r := gin.Default()
 
@@ -55,20 +62,25 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	api := r.Group("/api/v1")
-	api.Use(middleware.AuthMiddleware())
+	gamesAPI := r.Group(API_V1_GAMES_PATH)
+	gamesAPI.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/games", handler.GetGames)
-		api.POST("/games", handler.CreateGame)
-		api.DELETE("/games/:game_id", handler.DeleteGame)
+		gamesAPI.GET("", replayHandler.GetGames)
+		gamesAPI.POST("", replayHandler.CreateGame)
+		gamesAPI.PUT("/:game_id", replayHandler.UpdateGame)
+		gamesAPI.DELETE("/:game_id", replayHandler.DeleteGame)
 
-		api.GET("/games/:game_id/replays", handler.GetReplays)
-		api.POST("/games/:game_id/replays", handler.CreateReplay)
+		gamesAPI.GET("/:game_id/replays", replayHandler.GetReplays)
+		gamesAPI.POST("/:game_id/replays", replayHandler.CreateReplay)
+	}
 
-		api.GET("/replays/:replay_id", handler.GetReplay)
-		api.PUT("/replays/:replay_id", handler.UpdateReplay)
-		api.DELETE("/replays/:replay_id", handler.DeleteReplay)
-		api.GET("/replays/:replay_id/file", handler.GetReplayFile)
+	replaysAPI := r.Group(API_V1_REPLAYS_PATH)
+	replaysAPI.Use(middleware.AuthMiddleware())
+	{
+		replaysAPI.GET("/:replay_id", replayHandler.GetReplay)
+		replaysAPI.PUT("/:replay_id", replayHandler.UpdateReplay)
+		replaysAPI.DELETE("/:replay_id", replayHandler.DeleteReplay)
+		replaysAPI.GET("/:replay_id/file", replayHandler.GetReplayFile)
 	}
 
 	if err := r.Run(":" + cfg.Port); err != nil {

@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config содержит конфигурацию приложения
 type Config struct {
 	Port       string
 	DBDSN      string
@@ -16,14 +15,15 @@ type Config struct {
 	LogLevel   string
 }
 
-// Load загружает конфигурацию из .env файла и переменных окружения
+func (c Config) String() string {
+	return fmt.Sprintf("{  PORT=%s,  DBDSN=%s,  STORAGE_DIR=%s,  LOG_LEVEL=%s  }",
+		c.Port, c.DBDSN, c.StorageDir, c.LogLevel)
+}
 func Load() (*Config, error) {
-	// Пытаемся найти корень проекта и загрузить .env оттуда
 	if root, err := findProjectRoot(); err == nil {
 		envPath := filepath.Join(root, ".env")
 		_ = godotenv.Load(envPath)
 	} else {
-		// Если не удалось найти корень, пробуем загрузить из разных мест
 		envPaths := []string{
 			".env",
 			"../../.env",
@@ -50,7 +50,6 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// findProjectRoot пытается найти корень проекта, ища go.mod файл
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -72,7 +71,6 @@ func findProjectRoot() (string, error) {
 	return "", fmt.Errorf("project root not found")
 }
 
-// getEnv получает значение переменной окружения или возвращает значение по умолчанию
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

@@ -37,3 +37,8 @@ CREATE INDEX IF NOT EXISTS idx_replays_user_id ON replays (user_id);
 GRANT SELECT, INSERT, UPDATE, DELETE ON users TO PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON games TO PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON replays TO PUBLIC;
+
+-- Create default test user
+INSERT INTO users (id, login, password_hash) 
+VALUES ('00000000-0000-0000-0000-000000000001', 'test_user', 'test_hash')
+ON CONFLICT (id) DO NOTHING;

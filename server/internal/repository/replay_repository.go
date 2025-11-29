@@ -202,3 +202,22 @@ func (r *ReplayRepository) UpdateReplay(ctx context.Context, replayID, userID uu
 
 	return nil
 }
+
+func (r *ReplayRepository) UpdateGame(ctx context.Context, gameID, userID uuid.UUID, name string) error {
+	query := `
+		UPDATE games
+		SET name = $1
+		WHERE id = $2 AND user_id = $3
+	`
+
+	result, err := r.db.Pool.Exec(ctx, query, name, gameID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("game not found or access denied")
+	}
+
+	return nil
+}

@@ -64,6 +64,32 @@ X-User-ID: 00000000-0000-0000-0000-000000000001
 }
 ```
 
+### Обновить игру
+
+```http
+PUT /api/v1/games/{game_id}
+Content-Type: application/json
+```
+
+**Headers:**
+```
+X-User-ID: 00000000-0000-0000-0000-000000000001
+```
+
+**Body:**
+```json
+{
+  "name": "Counter-Strike 2 Updated"
+}
+```
+
+**Response 200:**
+```json
+{
+  "message": "updated"
+}
+```
+
 ### Удалить игру
 
 ```http

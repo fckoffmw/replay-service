@@ -338,9 +338,47 @@
         </div>
     </div>
 
+    <div class="modal" id="editGameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать игру</h2>
+            </div>
+            <div class="form-group">
+                <label>Название игры</label>
+                <input type="text" id="editGameName" placeholder="Например: Dota 2">
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideEditGameModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="updateGame()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editReplayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать реплей</h2>
+            </div>
+            <div class="form-group">
+                <label>Название</label>
+                <input type="text" id="editReplayTitle" placeholder="Название реплея">
+            </div>
+            <div class="form-group">
+                <label>Комментарий</label>
+                <textarea id="editReplayComment" placeholder="Описание реплея..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideEditReplayModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="updateReplay()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'http://localhost:8080/api/v1';
         let currentGameId = null;
+        let currentGameName = null;
+        let currentReplayId = null;
 
         function getUserId() {
             return document.getElementById('userId').value;
@@ -354,6 +392,30 @@
 
         function hideCreateGameModal() {
             document.getElementById('createGameModal').classList.remove('active');
+        }
+
+        function showEditGameModal(gameId, gameName) {
+            currentGameId = gameId;
+            currentGameName = gameName;
+            document.getElementById('editGameModal').classList.add('active');
+            document.getElementById('editGameName').value = gameName;
+            document.getElementById('editGameName').focus();
+        }
+
+        function hideEditGameModal() {
+            document.getElementById('editGameModal').classList.remove('active');
+        }
+
+        function showEditReplayModal(replayId, title, comment) {
+            currentReplayId = replayId;
+            document.getElementById('editReplayModal').classList.add('active');
+            document.getElementById('editReplayTitle').value = title || '';
+            document.getElementById('editReplayComment').value = comment || '';
+            document.getElementById('editReplayTitle').focus();
+        }
+
+        function hideEditReplayModal() {
+            document.getElementById('editReplayModal').classList.remove('active');
         }
 
         async function loadGames() {
@@ -431,7 +493,10 @@
                 contentArea.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;">${gameName}</h2>
-                        <button class="btn btn-danger btn-small" onclick="deleteGame('${gameId}', '${gameName}')">Удалить игру</button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-small" onclick="showEditGameModal('${gameId}', '${gameName}')">Редактировать</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteGame('${gameId}', '${gameName}')">Удалить игру</button>
+                        </div>
                     </div>
 
                     <div class="upload-form">
@@ -466,6 +531,7 @@
                                     ${replay.comment ? `<div class="replay-info">💬 ${replay.comment}</div>` : ''}
                                     <div class="replay-actions">
                                         <button class="btn btn-primary btn-small" onclick="downloadReplay('${replay.id}')">Скачать</button>
+                                        <button class="btn btn-primary btn-small" onclick="showEditReplayModal('${replay.id}', '${(replay.title || '').replace(/'/g, "\\'")}', '${(replay.comment || '').replace(/'/g, "\\'")}')">Редактировать</button>
                                         <button class="btn btn-danger btn-small" onclick="deleteReplay('${replay.id}')">Удалить</button>
                                     </div>
                                 </div>
@@ -578,6 +644,67 @@
             } catch (error) {
                 console.error('Error deleting game:', error);
                 alert('Ошибка удаления игры');
+            }
+        }
+
+        async function updateGame() {
+            const name = document.getElementById('editGameName').value.trim();
+            if (!name) {
+                alert('Введите название игры');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${currentGameId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': getUserId()
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                if (response.ok) {
+                    hideEditGameModal();
+                    await loadGames();
+                    await selectGame(currentGameId, name);
+                } else {
+                    alert('Ошибка обновления игры');
+                }
+            } catch (error) {
+                console.error('Error updating game:', error);
+                alert('Ошибка обновления игры');
+            }
+        }
+
+        async function updateReplay() {
+            const title = document.getElementById('editReplayTitle').value.trim();
+            const comment = document.getElementById('editReplayComment').value.trim();
+
+            try {
+                const formData = new FormData();
+                if (title) formData.append('title', title);
+                if (comment) formData.append('comment', comment);
+
+                const response = await fetch(`${API_BASE}/replays/${currentReplayId}`, {
+                    method: 'PUT',
+                    headers: { 'X-User-ID': getUserId() },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    hideEditReplayModal();
+                    const activeGame = document.querySelector('.game-item.active');
+                    if (activeGame && currentGameId) {
+                        const gameName = activeGame.querySelector('.game-name').textContent;
+                        await selectGame(currentGameId, gameName);
+                    }
+                } else {
+                    alert('Ошибка обновления реплея');
+                }
+            } catch (error) {
+                console.error('Error updating replay:', error);
+                alert('Ошибка обновления реплея');
             }
         }
 
