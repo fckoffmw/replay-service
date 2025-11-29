@@ -1,70 +1,52 @@
--- Создание фейковых пользователей
 INSERT INTO users (id, login, password_hash, created_at) VALUES
-    ('11111111-1111-1111-1111-111111111111', 'test_user', '$2a$10$dummyhash', NOW() - INTERVAL '30 days'),
-    ('22222222-2222-2222-2222-222222222222', 'player_one', '$2a$10$dummyhash', NOW() - INTERVAL '15 days'),
-    ('33333333-3333-3333-3333-333333333333', 'gamer_pro', '$2a$10$dummyhash', NOW() - INTERVAL '7 days')
+    ('00000000-0000-0000-0000-000000000001', 'test_user', '$2a$10$dummyhash', NOW() - INTERVAL '30 days'),
+    ('11111111-1111-1111-1111-111111111111', 'player_one', '$2a$10$dummyhash', NOW() - INTERVAL '15 days'),
+    ('22222222-2222-2222-2222-222222222222', 'gamer_pro', '$2a$10$dummyhash', NOW() - INTERVAL '7 days')
 ON CONFLICT (login) DO NOTHING;
 
--- Создание фейковых реплеев
--- Формат пути: storage/<год>/<месяц>/<id>.rep.gz
-INSERT INTO replays (id, original_name, file_path, size_bytes, uploaded_at, compression, compressed, user_id) VALUES
+INSERT INTO games (id, name, user_id, created_at) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Counter-Strike 2', '00000000-0000-0000-0000-000000000001', NOW() - INTERVAL '20 days'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Dota 2', '00000000-0000-0000-0000-000000000001', NOW() - INTERVAL '15 days'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Valorant', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '10 days')
+ON CONFLICT (user_id, name) DO NOTHING;
+
+INSERT INTO replays (id, title, original_name, file_path, size_bytes, uploaded_at, compression, compressed, comment, game_id, user_id) VALUES
     (
-        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '10000000-0000-0000-0000-000000000001',
+        'Epic comeback',
         'match_2024_01_15.rep',
-        'storage/2024/01/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.rep.gz',
+        '00000000-0000-0000-0000-000000000001/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/10000000-0000-0000-0000-000000000001.rep',
         1048576,
-        '2024-01-15 14:30:00+00',
-        'gzip',
-        true,
-        '11111111-1111-1111-1111-111111111111'
+        NOW() - INTERVAL '5 days',
+        'none',
+        false,
+        'Amazing clutch in overtime',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '00000000-0000-0000-0000-000000000001'
     ),
     (
-        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        '10000000-0000-0000-0000-000000000002',
+        'Tournament final',
         'tournament_final.rep',
-        'storage/2024/02/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.rep.gz',
+        '00000000-0000-0000-0000-000000000001/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/10000000-0000-0000-0000-000000000002.rep',
         2097152,
-        '2024-02-20 18:45:00+00',
-        'gzip',
-        true,
-        '11111111-1111-1111-1111-111111111111'
+        NOW() - INTERVAL '3 days',
+        'none',
+        false,
+        'Won the championship',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '00000000-0000-0000-0000-000000000001'
     ),
     (
-        'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        'quick_match.rep',
-        'storage/2024/03/cccccccc-cccc-cccc-cccc-cccccccccccc.rep.gz',
-        524288,
-        '2024-03-10 10:15:00+00',
-        'gzip',
-        true,
-        '22222222-2222-2222-2222-222222222222'
-    ),
-    (
-        'dddddddd-dddd-dddd-dddd-dddddddddddd',
-        'ranked_game.rep',
-        'storage/2024/03/dddddddd-dddd-dddd-dddd-dddddddddddd.rep.gz',
+        '10000000-0000-0000-0000-000000000003',
+        'Rampage game',
+        'rampage.rep',
+        '00000000-0000-0000-0000-000000000001/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/10000000-0000-0000-0000-000000000003.rep',
         1572864,
-        '2024-03-25 20:00:00+00',
-        'gzip',
-        true,
-        '22222222-2222-2222-2222-222222222222'
-    ),
-    (
-        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
-        'practice_session.rep',
-        'storage/2024/04/eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee.rep.gz',
-        786432,
-        '2024-04-05 12:30:00+00',
-        'gzip',
-        true,
-        '33333333-3333-3333-3333-333333333333'
-    ),
-    (
-        'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        'championship_round.rep',
-        'storage/2024/04/ffffffff-ffff-ffff-ffff-ffffffffffff.rep.gz',
-        3145728,
-        '2024-04-18 16:20:00+00',
-        'gzip',
-        true,
-        '33333333-3333-3333-3333-333333333333'
+        NOW() - INTERVAL '2 days',
+        'none',
+        false,
+        'Got rampage with Invoker',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        '00000000-0000-0000-0000-000000000001'
     );

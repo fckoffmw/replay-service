@@ -1,0 +1,60 @@
+### REST API Examples
+### Используйте этот файл в VS Code с расширением REST Client
+
+@baseUrl = http://localhost:8080
+
+### 1. Health Check
+GET {{baseUrl}}/healthz
+
+### 2. Загрузить реплей с метаданными
+POST {{baseUrl}}/replays/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Epic comeback
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="game_name"
+
+Dota 2
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="replay.rep"
+Content-Type: application/octet-stream
+
+< ./storage/2025/11/1488_replay.test
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 3. Получить все реплеи
+GET {{baseUrl}}/replays
+
+### 4. Получить реплеи конкретной игры
+GET {{baseUrl}}/replays?game=dota-2
+
+### 5. Получить метаданные реплея
+# Замените ID на реальный
+GET {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
+
+### 6. Скачать файл реплея
+# Замените ID на реальный
+GET {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000/download
+
+### 7. Обновить метаданные реплея
+# Замените ID на реальный
+PATCH {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "title": "Updated title",
+  "game_name": "Dota 2"
+}
+
+### 8. Удалить реплей
+# Замените ID на реальный
+DELETE {{baseUrl}}/replays/550e8400-e29b-41d4-a716-446655440000
+
+### 9. Получить список игр
+GET {{baseUrl}}/games
+
+### 10. Получить статистику по игре
+GET {{baseUrl}}/games/dota-2

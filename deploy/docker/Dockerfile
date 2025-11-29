@@ -7,11 +7,9 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/replay-service ./server/cmd/replay-service
 
-FROM gcr.io/distroless/base-debian12
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=builder /out/replay-service /app/replay-service
-# storage dir for files
-VOLUME ["/app/storage"]
 EXPOSE 8080
-USER 65532:65532
 ENTRYPOINT ["/app/replay-service"]

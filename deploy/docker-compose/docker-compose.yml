@@ -51,8 +51,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - replay_storage:/app/storage
+      - ../../storage:/app/storage
+    user: "${UID:-1000}:${GID:-1000}"
 
 volumes:
   replay_pg_data:
-  replay_storage:

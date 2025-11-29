@@ -8,23 +8,22 @@ import (
 
 	"github.com/fckoffmw/replay-service/server/config"
 	"github.com/fckoffmw/replay-service/server/internal/database"
+	"github.com/fckoffmw/replay-service/server/internal/handlers"
 	"github.com/fckoffmw/replay-service/server/internal/logger"
+	"github.com/fckoffmw/replay-service/server/internal/middleware"
 	"github.com/fckoffmw/replay-service/server/internal/repository"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Загружаем конфигурацию из .env файла
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	logger := logger.NewSlog(cfg.LogLevel)
-	logger.Info("logger created!")
-	logger.Debug("AHAHHA")
+	_ = logger
 
-	// Подключаемся к базе данных
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -36,38 +35,41 @@ func main() {
 
 	log.Println("Successfully connected to database")
 
-	// Создаем репозиторий для работы с реплеями
 	replayRepo := repository.NewReplayRepository(db)
+	handler := handlers.NewHandler(replayRepo, cfg.StorageDir)
 
 	r := gin.Default()
+
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Список реплеев из базы данных
-	r.GET("/replays", func(c *gin.Context) {
-		replays, err := replayRepo.GetAll(c.Request.Context())
-		if err != nil {
-			log.Printf("Failed to get replays: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get replays"})
-			return
-		}
+	api := r.Group("/api/v1")
+	api.Use(middleware.AuthMiddleware())
+	{
+		api.GET("/games", handler.GetGames)
+		api.POST("/games", handler.CreateGame)
+		api.DELETE("/games/:game_id", handler.DeleteGame)
 
-		c.JSON(http.StatusOK, replays)
-	})
+		api.GET("/games/:game_id/replays", handler.GetReplays)
+		api.POST("/games/:game_id/replays", handler.CreateReplay)
 
-	// Mock: получить реплей
-	r.GET("/replays/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		c.JSON(http.StatusOK, gin.H{"id": id, "url": "/download/not-implemented"})
-	})
-
-	// Mock: загрузка
-	r.POST("/replays/upload", func(c *gin.Context) {
-		// В мок-версии просто отвечаем успехом
-		c.JSON(http.StatusCreated, gin.H{"id": "22222222-2222-2222-2222-222222222222"})
-	})
+		api.GET("/replays/:replay_id", handler.GetReplay)
+		api.PUT("/replays/:replay_id", handler.UpdateReplay)
+		api.DELETE("/replays/:replay_id", handler.DeleteReplay)
+		api.GET("/replays/:replay_id/file", handler.GetReplayFile)
+	}
 
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)

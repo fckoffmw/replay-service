@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay Service Test Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        input, select { padding: 5px; margin: 5px; }
+        .game { margin: 10px 0; padding: 10px; background: #f9f9f9; border-left: 3px solid #007bff; }
+        .replay { margin: 5px 0 5px 20px; padding: 8px; background: #fff; border-left: 2px solid #28a745; }
+    </style>
+</head>
+<body>
+    <h1>Replay Service Test Client</h1>
+    
+    <div class="section">
+        <h2>User ID</h2>
+        <input type="text" id="userId" value="00000000-0000-0000-0000-000000000001" style="width: 300px;">
+        <p>Default test user ID (можно менять)</p>
+    </div>
+
+    <div class="section">
+        <h2>Games</h2>
+        <button onclick="loadGames()">Load Games</button>
+        <button onclick="createGame()">Create New Game</button>
+        <div id="gamesResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Replays</h2>
+        <label>Game ID: <input type="text" id="gameId" style="width: 300px;"></label>
+        <button onclick="loadReplays()">Load Replays</button>
+        <div id="replaysResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Upload Replay</h2>
+        <label>Game ID: <input type="text" id="uploadGameId" style="width: 300px;"></label><br>
+        <label>Title: <input type="text" id="replayTitle"></label><br>
+        <label>Comment: <input type="text" id="replayComment"></label><br>
+        <label>File: <input type="file" id="replayFile"></label><br>
+        <button onclick="uploadReplay()">Upload</button>
+        <div id="uploadResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Response</h2>
+        <pre id="response">Responses will appear here...</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+
+        function getUserId() {
+            return document.getElementById('userId').value;
+        }
+
+        function showResponse(data) {
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function loadGames() {
+            try {
+                const response = await fetch(`${API_BASE}/games`, {
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const data = await response.json();
+                showResponse(data);
+                
+                let html = '<h3>Your Games:</h3>';
+                if (data && data.length > 0) {
+                    data.forEach(game => {
+                        html += `
+                            <div class="game">
+                                <strong>${game.name}</strong> (${game.replay_count} replays)
+                                <br>ID: ${game.id}
+                                <br><button onclick="loadReplaysForGame('${game.id}')">Load Replays</button>
+                                <button onclick="deleteGame('${game.id}')">Delete Game</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>No games found</p>';
+                }
+                document.getElementById('gamesResult').innerHTML = html;
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function createGame() {
+            const name = prompt('Enter game name:');
+            if (!name) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/games`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': getUserId()
+                    },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+                showResponse(data);
+                alert('Game created!');
+                loadGames();
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function loadReplaysForGame(gameId) {
+            document.getElementById('gameId').value = gameId;
+            loadReplays();
+        }
+
+        async function loadReplays() {
+            const gameId = document.getElementById('gameId').value;
+            if (!gameId) {
+                alert('Enter game ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${gameId}/replays?limit=10`, {
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const data = await response.json();
+                showResponse(data);
+
+                let html = '<h3>Replays:</h3>';
+                if (data && data.length > 0) {
+                    data.forEach(replay => {
+                        html += `
+                            <div class="replay">
+                                <strong>${replay.title || replay.original_name}</strong>
+                                <br>Size: ${(replay.size_bytes / 1024).toFixed(2)} KB
+                                <br>Uploaded: ${new Date(replay.uploaded_at).toLocaleString()}
+                                <br><button onclick="viewReplay('${replay.id}')">View Details</button>
+                                <button onclick="downloadReplay('${replay.id}')">Download</button>
+                                <button onclick="deleteReplay('${replay.id}')">Delete</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>No replays found</p>';
+                }
+                document.getElementById('replaysResult').innerHTML = html;
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function viewReplay(replayId) {
+            try {
+                const response = await fetch(`${API_BASE}/replays/${replayId}`, {
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const data = await response.json();
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function downloadReplay(replayId) {
+            window.open(`${API_BASE}/replays/${replayId}/file`, '_blank');
+        }
+
+        async function deleteReplay(replayId) {
+            if (!confirm('Delete this replay?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/replays/${replayId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const data = await response.json();
+                showResponse(data);
+                alert('Replay deleted!');
+                loadReplays();
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function deleteGame(gameId) {
+            if (!confirm('Delete this game and all its replays?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${gameId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-User-ID': getUserId() }
+                });
+                const data = await response.json();
+                showResponse(data);
+                alert('Game deleted!');
+                loadGames();
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        async function uploadReplay() {
+            const gameId = document.getElementById('uploadGameId').value;
+            const title = document.getElementById('replayTitle').value;
+            const comment = document.getElementById('replayComment').value;
+            const fileInput = document.getElementById('replayFile');
+
+            if (!gameId || !fileInput.files[0]) {
+                alert('Game ID and file are required');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('title', title);
+            formData.append('comment', comment);
+
+            try {
+                const response = await fetch(`${API_BASE}/games/${gameId}/replays`, {
+                    method: 'POST',
+                    headers: { 'X-User-ID': getUserId() },
+                    body: formData
+                });
+                const data = await response.json();
+                showResponse(data);
+                alert('Replay uploaded!');
+                fileInput.value = '';
+                document.getElementById('replayTitle').value = '';
+                document.getElementById('replayComment').value = '';
+            } catch (error) {
+                showResponse({ error: error.message });
+            }
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>
