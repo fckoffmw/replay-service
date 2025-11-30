@@ -44,18 +44,14 @@ func main() {
 
 	logger.Info("Successfully connected to database")
 
-	// Initialize repositories
 	gameRepo := repository.NewGameRepository(db)
 	replayRepo := repository.NewReplayRepository(db)
-	
-	// Initialize storage
+
 	fileStorage := storage.NewFileStorage(cfg.StorageDir)
-	
-	// Initialize services
+
 	gameService := services.NewGameService(gameRepo, replayRepo, fileStorage)
 	replayService := services.NewReplayService(replayRepo, fileStorage)
-	
-	// Initialize handlers (controllers)
+
 	handler := handlers.NewHandler(gameService, replayService)
 
 	r := gin.Default()

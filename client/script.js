@@ -167,7 +167,8 @@ async function selectGame(gameId, gameName) {
                                     <div class="replay-info">📅 ${new Date(replay.uploaded_at).toLocaleString('ru-RU')}</div>
                                     ${replay.comment ? `<div class="replay-info">💬 ${replay.comment}</div>` : ''}
                                     <div class="replay-actions">
-                                        <button class="btn btn-primary btn-small" onclick="downloadReplay('${replay.id}')">Скачать</button>
+                                        ${isVideo ? `<button class="btn btn-success btn-small" onclick="playReplay('${replay.id}')">▶ Проиграть</button>` : ''}
+                                        <button class="btn btn-primary btn-small" onclick="downloadReplay('${replay.id}')">⬇ Скачать</button>
                                         <button class="btn btn-primary btn-small" onclick="showEditReplayModal('${replay.id}', '${(replay.title || '').replace(/'/g, "\\'")}', '${(replay.comment || '').replace(/'/g, "\\'")}')">Редактировать</button>
                                         <button class="btn btn-danger btn-small" onclick="deleteReplay('${replay.id}')">Удалить</button>
                                     </div>
@@ -238,7 +239,12 @@ async function uploadReplay() {
 }
 
 function downloadReplay(replayId) {
-    window.open(`${API_BASE}/replays/${replayId}/file`, '_blank');
+    window.open(`${API_BASE}/replays/${replayId}/file?download=true`, '_blank');
+}
+
+function playReplay(replayId) {
+    // Для видео - открыть страницу плеера, для остальных - просто открыть файл
+    window.location.href = `player.html?id=${replayId}&userId=${getUserId()}`;
 }
 
 async function deleteReplay(replayId) {
