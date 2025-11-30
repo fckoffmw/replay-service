@@ -13,10 +13,11 @@ type Config struct {
 	DBDSN      string
 	StorageDir string
 	LogLevel   string
+	JWTSecret  string
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("{  PORT=%s,  DBDSN=%s,  STORAGE_DIR=%s,  LOG_LEVEL=%s  }",
+	return fmt.Sprintf("{  PORT=%s,  DBDSN=%s,  STORAGE_DIR=%s,  LOG_LEVEL=%s,  JWT_SECRET=***  }",
 		c.Port, c.DBDSN, c.StorageDir, c.LogLevel)
 }
 func Load() (*Config, error) {
@@ -41,10 +42,15 @@ func Load() (*Config, error) {
 		DBDSN:      getEnv("DB_DSN", ""),
 		StorageDir: getEnv("STORAGE_DIR", "./storage"),
 		LogLevel:   getEnv("LOG_LEVEL", "debug"),
+		JWTSecret:  getEnv("JWT_SECRET", ""),
 	}
 
 	if cfg.DBDSN == "" {
 		return nil, fmt.Errorf("DB_DSN is required (set DB_DSN environment variable or create .env file in project root)")
+	}
+
+	if cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is required (set JWT_SECRET environment variable or create .env file in project root)")
 	}
 
 	return cfg, nil

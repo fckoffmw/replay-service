@@ -46,20 +46,23 @@ func main() {
 
 	gameRepo := repository.NewGameRepository(db)
 	replayRepo := repository.NewReplayRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	fileStorage := storage.NewFileStorage(cfg.StorageDir)
 
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret, logger)
 	gameService := services.NewGameService(gameRepo, replayRepo, fileStorage, logger)
 	replayService := services.NewReplayService(replayRepo, fileStorage, logger)
 
 	handler := handlers.NewHandler(gameService, replayService)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
@@ -71,8 +74,14 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	authAPI := r.Group(API_V1_PATH + "/auth")
+	{
+		authAPI.POST("/register", authHandler.Register)
+		authAPI.POST("/login", authHandler.Login)
+	}
+
 	gamesAPI := r.Group(API_V1_GAMES_PATH)
-	gamesAPI.Use(middleware.AuthMiddleware(logger))
+	gamesAPI.Use(middleware.AuthMiddleware(authService, logger))
 	{
 		gamesAPI.GET("", handler.GetGames)
 		gamesAPI.POST("", handler.CreateGame)
@@ -84,7 +93,7 @@ func main() {
 	}
 
 	replaysAPI := r.Group(API_V1_REPLAYS_PATH)
-	replaysAPI.Use(middleware.AuthMiddleware(logger))
+	replaysAPI.Use(middleware.AuthMiddleware(authService, logger))
 	{
 		replaysAPI.GET("/:replay_id", handler.GetReplay)
 		replaysAPI.PUT("/:replay_id", handler.UpdateReplay)

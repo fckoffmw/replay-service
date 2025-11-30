@@ -19,10 +19,23 @@ const TokenManager = {
         if (!token) return false;
         
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                console.warn('Invalid token format');
+                this.removeToken();
+                return false;
+            }
+            const payload = JSON.parse(atob(parts[1]));
             const exp = payload.exp * 1000;
-            return Date.now() < exp;
+            const isValid = Date.now() < exp;
+            if (!isValid) {
+                console.warn('Token expired');
+                this.removeToken();
+            }
+            return isValid;
         } catch (e) {
+            console.error('Token validation error:', e);
+            this.removeToken();
             return false;
         }
     },
@@ -32,13 +45,20 @@ const TokenManager = {
         if (!token) return null;
         
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                console.warn('Invalid token format in getUserFromToken');
+                this.removeToken();
+                return null;
+            }
+            const payload = JSON.parse(atob(parts[1]));
             return {
                 id: payload.user_id,
-                email: payload.email,
-                username: payload.username
+                login: payload.login
             };
         } catch (e) {
+            console.error('Error parsing token:', e);
+            this.removeToken();
             return null;
         }
     }
@@ -70,12 +90,11 @@ if (document.getElementById('loginForm')) {
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const email = document.getElementById('email').value.trim();
+        const login = document.getElementById('login').value.trim();
         const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('rememberMe').checked;
         const submitButton = e.target.querySelector('button[type="submit"]');
         
-        if (!email || !password) {
+        if (!login || !password) {
             showError('Заполните все поля');
             return;
         }
@@ -89,9 +108,8 @@ if (document.getElementById('loginForm')) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    email,
-                    password,
-                    remember_me: rememberMe
+                    login,
+                    password
                 })
             });
             
@@ -109,7 +127,7 @@ if (document.getElementById('loginForm')) {
             
         } catch (error) {
             console.error('Login error:', error);
-            showError(error.message || 'Ошибка входа. Проверьте email и пароль.');
+            showError(error.message || 'Ошибка входа. Проверьте логин и пароль.');
         } finally {
             setButtonLoading(submitButton, false);
         }
@@ -121,20 +139,19 @@ if (document.getElementById('registerForm')) {
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const username = document.getElementById('username').value.trim();
-        const email = document.getElementById('email').value.trim();
+        const login = document.getElementById('login').value.trim();
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
         const submitButton = e.target.querySelector('button[type="submit"]');
         
         // Validation
-        if (!username || !email || !password || !confirmPassword) {
+        if (!login || !password || !confirmPassword) {
             showError('Заполните все поля');
             return;
         }
         
-        if (username.length < 3) {
-            showError('Имя пользователя должно быть не менее 3 символов');
+        if (login.length < 3) {
+            showError('Логин должен быть не менее 3 символов');
             return;
         }
         
@@ -157,8 +174,7 @@ if (document.getElementById('registerForm')) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    username,
-                    email,
+                    login,
                     password
                 })
             });
@@ -177,7 +193,7 @@ if (document.getElementById('registerForm')) {
             
         } catch (error) {
             console.error('Registration error:', error);
-            showError(error.message || 'Ошибка регистрации. Возможно, email уже используется.');
+            showError(error.message || 'Ошибка регистрации. Возможно, логин уже используется.');
         } finally {
             setButtonLoading(submitButton, false);
         }

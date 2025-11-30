@@ -3,32 +3,47 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
+	"github.com/fckoffmw/replay-service/server/internal/services"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 const (
-	headerUserID     = "X-User-ID"
 	contextKeyUserID = "user_id"
-	defaultUserID    = "00000000-0000-0000-0000-000000000001"
 )
 
-func AuthMiddleware(logger *slog.Logger) gin.HandlerFunc {
+func AuthMiddleware(authService *services.AuthService, logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userIDStr := c.GetHeader(headerUserID)
-		if userIDStr == "" {
-			userIDStr = defaultUserID
-			logger.Debug("no user_id header, using default",
-				slog.String("default_user_id", userIDStr))
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			logger.Warn("missing authorization header")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Требуется авторизация"})
+			c.Abort()
+			return
 		}
 
-		userID, err := uuid.Parse(userIDStr)
+		logger.Debug("received auth header", slog.String("header", authHeader))
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			logger.Warn("invalid authorization header format",
+				slog.String("header", authHeader),
+				slog.Int("parts_count", len(parts)))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный формат токена"})
+			c.Abort()
+			return
+		}
+
+		token := parts[1]
+		logger.Debug("extracted token", slog.String("token", token[:20]+"..."))
+
+		userID, err := authService.ValidateToken(token)
 		if err != nil {
-			logger.Error("invalid user_id",
-				slog.String("user_id", userIDStr),
-				slog.String("error", err.Error()))
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id"})
+			logger.Warn("invalid token",
+				slog.String("error", err.Error()),
+				slog.String("token_preview", token[:min(20, len(token))]))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный или истекший токен"})
 			c.Abort()
 			return
 		}
@@ -38,7 +53,14 @@ func AuthMiddleware(logger *slog.Logger) gin.HandlerFunc {
 			slog.String("path", c.Request.URL.Path),
 			slog.String("user_id", userID.String()))
 
-		c.Set(contextKeyUserID, userID)
+		c.Set(contextKeyUserID, *userID)
 		c.Next()
 	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

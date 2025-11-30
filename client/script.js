@@ -18,10 +18,23 @@ const TokenManager = {
         if (!token) return false;
         
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                console.warn('Invalid token format');
+                this.removeToken();
+                return false;
+            }
+            const payload = JSON.parse(atob(parts[1]));
             const exp = payload.exp * 1000;
-            return Date.now() < exp;
+            const isValid = Date.now() < exp;
+            if (!isValid) {
+                console.warn('Token expired');
+                this.removeToken();
+            }
+            return isValid;
         } catch (e) {
+            console.error('Token validation error:', e);
+            this.removeToken();
             return false;
         }
     },
@@ -31,13 +44,20 @@ const TokenManager = {
         if (!token) return null;
         
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                console.warn('Invalid token format in getUserFromToken');
+                this.removeToken();
+                return null;
+            }
+            const payload = JSON.parse(atob(parts[1]));
             return {
                 id: payload.user_id,
-                email: payload.email,
-                username: payload.username
+                login: payload.login
             };
         } catch (e) {
+            console.error('Error parsing token:', e);
+            this.removeToken();
             return null;
         }
     }
@@ -113,6 +133,14 @@ async function loadGames() {
         const response = await fetch(`${API_BASE}/games`, {
             headers: getAuthHeaders()
         });
+        
+        if (response.status === 401) {
+            // Token invalid or expired
+            TokenManager.removeToken();
+            window.location.href = 'login.html';
+            return;
+        }
+        
         const games = await response.json();
         
         const gameList = document.getElementById('gameList');
@@ -424,7 +452,7 @@ async function updateReplay() {
 // Display user info
 const user = TokenManager.getUserFromToken();
 if (user) {
-    document.getElementById('userDisplay').textContent = `👤 ${user.username || user.email}`;
+    document.getElementById('userDisplay').textContent = `👤 ${user.login}`;
 }
 
 loadGames();
