@@ -2,8 +2,7 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
 	"mime/multipart"
 	"path/filepath"
 
@@ -13,136 +12,142 @@ import (
 	"github.com/google/uuid"
 )
 
-// ReplayService handles business logic for replays
+const (
+	compressionNone = "none"
+)
+
 type ReplayService struct {
 	replayRepo *repository.ReplayRepository
 	storage    *storage.FileStorage
+	logger     *slog.Logger
 }
 
 func NewReplayService(
 	replayRepo *repository.ReplayRepository,
 	storage *storage.FileStorage,
+	logger *slog.Logger,
 ) *ReplayService {
 	return &ReplayService{
 		replayRepo: replayRepo,
 		storage:    storage,
+		logger:     logger,
 	}
 }
 
-// GetGameReplays returns replays for a specific game
 func (s *ReplayService) GetGameReplays(ctx context.Context, gameID, userID uuid.UUID, limit int) ([]models.Replay, error) {
-	log.Printf("[ReplayService] GetGameReplays: game_id=%s, user_id=%s, limit=%d", gameID, userID, limit)
-	
+	s.logger.Info("getting game replays",
+		slog.String("game_id", gameID.String()),
+		slog.String("user_id", userID.String()),
+		slog.Int("limit", limit))
+
 	replays, err := s.replayRepo.GetByGameID(ctx, gameID, userID, limit)
 	if err != nil {
-		log.Printf("[ReplayService] GetGameReplays ERROR: %v", err)
-		return nil, fmt.Errorf("failed to get replays: %w", err)
+		s.logger.Error("failed to get replays", slog.String("error", err.Error()))
+		return nil, wrapError("get replays", err)
 	}
-	
-	log.Printf("[ReplayService] GetGameReplays SUCCESS: found %d replays", len(replays))
+
+	s.logger.Info("replays retrieved", slog.Int("count", len(replays)))
 	return replays, nil
 }
 
-// GetReplay returns a single replay by ID
 func (s *ReplayService) GetReplay(ctx context.Context, replayID, userID uuid.UUID) (*models.Replay, error) {
-	log.Printf("[ReplayService] GetReplay: replay_id=%s, user_id=%s", replayID, userID)
-	
+	s.logger.Info("getting replay",
+		slog.String("replay_id", replayID.String()),
+		slog.String("user_id", userID.String()))
+
 	replay, err := s.replayRepo.GetByID(ctx, replayID, userID)
 	if err != nil {
-		log.Printf("[ReplayService] GetReplay ERROR: %v", err)
-		return nil, fmt.Errorf("replay not found: %w", err)
+		s.logger.Error("replay not found", slog.String("error", err.Error()))
+		return nil, notFoundError("replay", err)
 	}
-	
-	log.Printf("[ReplayService] GetReplay SUCCESS: %s", replay.OriginalName)
+
+	s.logger.Info("replay retrieved", slog.String("filename", replay.OriginalName))
 	return replay, nil
 }
 
-// CreateReplay creates a new replay with file upload
 func (s *ReplayService) CreateReplay(
 	ctx context.Context,
 	file *multipart.FileHeader,
 	gameID, userID uuid.UUID,
 	title, comment string,
 ) (*models.Replay, error) {
-	log.Printf("[ReplayService] CreateReplay: game_id=%s, user_id=%s, file=%s, title=%s",
-		gameID, userID, file.Filename, title)
-	
-	// Create replay model
+	s.logger.Info("creating replay",
+		slog.String("game_id", gameID.String()),
+		slog.String("user_id", userID.String()),
+		slog.String("filename", file.Filename),
+		slog.String("title", title))
+
 	replay := &models.Replay{
 		ID:           uuid.New(),
 		Title:        stringPtr(title),
 		OriginalName: file.Filename,
 		SizeBytes:    file.Size,
-		Compression:  "none",
+		Compression:  compressionNone,
 		Compressed:   false,
 		Comment:      stringPtr(comment),
 		GameID:       gameID,
 		UserID:       userID,
 	}
-	
-	// Save file to storage
+
 	filePath, err := s.storage.SaveReplayFile(file, userID, gameID, replay.ID)
 	if err != nil {
-		log.Printf("[ReplayService] CreateReplay ERROR saving file: %v", err)
-		return nil, fmt.Errorf("failed to save file: %w", err)
+		s.logger.Error("failed to save file", slog.String("error", err.Error()))
+		return nil, wrapError("save file", err)
 	}
 	replay.FilePath = filePath
-	
-	// Save metadata to database
+
 	if err := s.replayRepo.Create(ctx, replay); err != nil {
-		log.Printf("[ReplayService] CreateReplay ERROR saving to DB: %v", err)
-		// Rollback: delete file
+		s.logger.Error("failed to save replay to database", slog.String("error", err.Error()))
 		s.storage.DeleteFile(filePath)
-		return nil, fmt.Errorf("failed to create replay: %w", err)
+		return nil, wrapError("create replay", err)
 	}
-	
-	log.Printf("[ReplayService] CreateReplay SUCCESS: replay_id=%s", replay.ID)
+
+	s.logger.Info("replay created", slog.String("replay_id", replay.ID.String()))
 	return replay, nil
 }
 
-// UpdateReplay updates replay metadata
 func (s *ReplayService) UpdateReplay(ctx context.Context, replayID, userID uuid.UUID, title, comment *string) error {
-	log.Printf("[ReplayService] UpdateReplay: replay_id=%s, user_id=%s", replayID, userID)
-	
+	s.logger.Info("updating replay",
+		slog.String("replay_id", replayID.String()),
+		slog.String("user_id", userID.String()))
+
 	if err := s.replayRepo.Update(ctx, replayID, userID, title, comment); err != nil {
-		log.Printf("[ReplayService] UpdateReplay ERROR: %v", err)
-		return fmt.Errorf("failed to update replay: %w", err)
+		s.logger.Error("failed to update replay", slog.String("error", err.Error()))
+		return wrapError("update replay", err)
 	}
-	
-	log.Printf("[ReplayService] UpdateReplay SUCCESS")
+
+	s.logger.Info("replay updated")
 	return nil
 }
 
-// DeleteReplay deletes a replay and its file
 func (s *ReplayService) DeleteReplay(ctx context.Context, replayID, userID uuid.UUID) error {
-	log.Printf("[ReplayService] DeleteReplay: replay_id=%s, user_id=%s", replayID, userID)
-	
-	// Delete from database and get file path
+	s.logger.Info("deleting replay",
+		slog.String("replay_id", replayID.String()),
+		slog.String("user_id", userID.String()))
+
 	filePath, err := s.replayRepo.Delete(ctx, replayID, userID)
 	if err != nil {
-		log.Printf("[ReplayService] DeleteReplay ERROR: %v", err)
-		return fmt.Errorf("replay not found: %w", err)
+		s.logger.Error("replay not found", slog.String("error", err.Error()))
+		return notFoundError("replay", err)
 	}
-	
-	// Delete file from storage
+
 	if err := s.storage.DeleteFile(filePath); err != nil {
-		log.Printf("[ReplayService] DeleteReplay WARNING: failed to delete file: %v", err)
+		s.logger.Warn("failed to delete file", slog.String("error", err.Error()))
 	}
-	
-	log.Printf("[ReplayService] DeleteReplay SUCCESS")
+
+	s.logger.Info("replay deleted")
 	return nil
 }
 
-// GetReplayFilePath returns the full path to replay file
 func (s *ReplayService) GetReplayFilePath(ctx context.Context, replayID, userID uuid.UUID) (string, string, error) {
 	replay, err := s.GetReplay(ctx, replayID, userID)
 	if err != nil {
 		return "", "", err
 	}
-	
+
 	fullPath := s.storage.GetFilePath(replay.FilePath)
 	ext := filepath.Ext(replay.OriginalName)
-	
+
 	return fullPath, ext, nil
 }
 

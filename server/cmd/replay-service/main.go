@@ -49,8 +49,8 @@ func main() {
 
 	fileStorage := storage.NewFileStorage(cfg.StorageDir)
 
-	gameService := services.NewGameService(gameRepo, replayRepo, fileStorage)
-	replayService := services.NewReplayService(replayRepo, fileStorage)
+	gameService := services.NewGameService(gameRepo, replayRepo, fileStorage, logger)
+	replayService := services.NewReplayService(replayRepo, fileStorage, logger)
 
 	handler := handlers.NewHandler(gameService, replayService)
 
@@ -72,7 +72,7 @@ func main() {
 	})
 
 	gamesAPI := r.Group(API_V1_GAMES_PATH)
-	gamesAPI.Use(middleware.AuthMiddleware())
+	gamesAPI.Use(middleware.AuthMiddleware(logger))
 	{
 		gamesAPI.GET("", handler.GetGames)
 		gamesAPI.POST("", handler.CreateGame)
@@ -84,7 +84,7 @@ func main() {
 	}
 
 	replaysAPI := r.Group(API_V1_REPLAYS_PATH)
-	replaysAPI.Use(middleware.AuthMiddleware())
+	replaysAPI.Use(middleware.AuthMiddleware(logger))
 	{
 		replaysAPI.GET("/:replay_id", handler.GetReplay)
 		replaysAPI.PUT("/:replay_id", handler.UpdateReplay)

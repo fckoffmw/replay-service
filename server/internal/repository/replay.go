@@ -2,14 +2,12 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/fckoffmw/replay-service/server/internal/database"
 	"github.com/fckoffmw/replay-service/server/internal/models"
 	"github.com/google/uuid"
 )
 
-// ReplayRepository handles database operations for replays
 type ReplayRepository struct {
 	db *database.DB
 }
@@ -18,7 +16,6 @@ func NewReplayRepository(db *database.DB) *ReplayRepository {
 	return &ReplayRepository{db: db}
 }
 
-// GetByGameID returns replays for a specific game
 func (r *ReplayRepository) GetByGameID(ctx context.Context, gameID, userID uuid.UUID, limit int) ([]models.Replay, error) {
 	query := `
 		SELECT r.id, r.title, r.original_name, r.uploaded_at, r.size_bytes, r.compression, r.compressed, r.comment, r.game_id
@@ -30,7 +27,7 @@ func (r *ReplayRepository) GetByGameID(ctx context.Context, gameID, userID uuid.
 
 	rows, err := r.db.Pool.Query(ctx, query, gameID, userID, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query replays: %w", err)
+		return nil, wrapQueryError("query replays", err)
 	}
 	defer rows.Close()
 
@@ -38,7 +35,7 @@ func (r *ReplayRepository) GetByGameID(ctx context.Context, gameID, userID uuid.
 	for rows.Next() {
 		var replay models.Replay
 		if err := rows.Scan(&replay.ID, &replay.Title, &replay.OriginalName, &replay.UploadedAt, &replay.SizeBytes, &replay.Compression, &replay.Compressed, &replay.Comment, &replay.GameID); err != nil {
-			return nil, fmt.Errorf("failed to scan replay: %w", err)
+			return nil, wrapScanError("replay", err)
 		}
 		replays = append(replays, replay)
 	}
@@ -46,7 +43,6 @@ func (r *ReplayRepository) GetByGameID(ctx context.Context, gameID, userID uuid.
 	return replays, rows.Err()
 }
 
-// GetByID returns a single replay by ID
 func (r *ReplayRepository) GetByID(ctx context.Context, replayID, userID uuid.UUID) (*models.Replay, error) {
 	query := `
 		SELECT r.id, r.title, r.original_name, r.comment, r.uploaded_at, r.size_bytes, 
@@ -63,14 +59,13 @@ func (r *ReplayRepository) GetByID(ctx context.Context, replayID, userID uuid.UU
 		&replay.GameID, &replay.GameName,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get replay: %w", err)
+		return nil, wrapQueryError("get replay", err)
 	}
 
 	replay.UserID = userID
 	return &replay, nil
 }
 
-// Create creates a new replay record
 func (r *ReplayRepository) Create(ctx context.Context, replay *models.Replay) error {
 	query := `
 		INSERT INTO replays (id, title, original_name, file_path, size_bytes, compression, compressed, comment, game_id, user_id)
@@ -84,13 +79,12 @@ func (r *ReplayRepository) Create(ctx context.Context, replay *models.Replay) er
 	).Scan(&replay.UploadedAt)
 
 	if err != nil {
-		return fmt.Errorf("failed to create replay: %w", err)
+		return wrapQueryError("create replay", err)
 	}
 
 	return nil
 }
 
-// Delete deletes a replay and returns its file path
 func (r *ReplayRepository) Delete(ctx context.Context, replayID, userID uuid.UUID) (string, error) {
 	query := `
 		DELETE FROM replays
@@ -101,13 +95,12 @@ func (r *ReplayRepository) Delete(ctx context.Context, replayID, userID uuid.UUI
 	var filePath string
 	err := r.db.Pool.QueryRow(ctx, query, replayID, userID).Scan(&filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to delete replay: %w", err)
+		return "", wrapQueryError("delete replay", err)
 	}
 
 	return filePath, nil
 }
 
-// GetFilePathsByGameID returns all file paths for replays of a game
 func (r *ReplayRepository) GetFilePathsByGameID(ctx context.Context, gameID, userID uuid.UUID) ([]string, error) {
 	query := `
 		SELECT file_path FROM replays WHERE game_id = $1 AND user_id = $2
@@ -115,7 +108,7 @@ func (r *ReplayRepository) GetFilePathsByGameID(ctx context.Context, gameID, use
 
 	rows, err := r.db.Pool.Query(ctx, query, gameID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query replay paths: %w", err)
+		return nil, wrapQueryError("query replay paths", err)
 	}
 	defer rows.Close()
 
@@ -123,7 +116,7 @@ func (r *ReplayRepository) GetFilePathsByGameID(ctx context.Context, gameID, use
 	for rows.Next() {
 		var path string
 		if err := rows.Scan(&path); err != nil {
-			return nil, fmt.Errorf("failed to scan file path: %w", err)
+			return nil, wrapScanError("file path", err)
 		}
 		filePaths = append(filePaths, path)
 	}
@@ -131,7 +124,6 @@ func (r *ReplayRepository) GetFilePathsByGameID(ctx context.Context, gameID, use
 	return filePaths, rows.Err()
 }
 
-// Update updates replay metadata
 func (r *ReplayRepository) Update(ctx context.Context, replayID, userID uuid.UUID, title, comment *string) error {
 	query := `
 		UPDATE replays
@@ -141,7 +133,7 @@ func (r *ReplayRepository) Update(ctx context.Context, replayID, userID uuid.UUI
 
 	_, err := r.db.Pool.Exec(ctx, query, title, comment, replayID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to update replay: %w", err)
+		return wrapQueryError("update replay", err)
 	}
 
 	return nil
