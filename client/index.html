@@ -9,11 +9,15 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎮 Replay Service</h1>
-            <p>Управление игровыми реплеями</p>
-            <div class="user-info">
-                <label>User ID:</label>
-                <input type="text" id="userId" value="00000000-0000-0000-0000-000000000001">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🎮 Replay Service</h1>
+                    <p>Управление игровыми реплеями</p>
+                </div>
+                <div class="user-info">
+                    <span id="userDisplay" style="margin-right: 15px; font-weight: 500;"></span>
+                    <button class="btn btn-danger btn-small" onclick="logout()">Выйти</button>
+                </div>
             </div>
         </header>
 

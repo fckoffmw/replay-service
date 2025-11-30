@@ -3,8 +3,66 @@ let currentGameId = null;
 let currentGameName = null;
 let currentReplayId = null;
 
+// JWT Token Management
+const TokenManager = {
+    getToken() {
+        return localStorage.getItem('jwt_token');
+    },
+    
+    removeToken() {
+        localStorage.removeItem('jwt_token');
+    },
+    
+    isAuthenticated() {
+        const token = this.getToken();
+        if (!token) return false;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const exp = payload.exp * 1000;
+            return Date.now() < exp;
+        } catch (e) {
+            return false;
+        }
+    },
+    
+    getUserFromToken() {
+        const token = this.getToken();
+        if (!token) return null;
+        
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return {
+                id: payload.user_id,
+                email: payload.email,
+                username: payload.username
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+};
+
+// Check authentication on page load
+if (!TokenManager.isAuthenticated()) {
+    window.location.href = 'login.html';
+}
+
+function getAuthHeaders() {
+    const token = TokenManager.getToken();
+    return {
+        'Authorization': `Bearer ${token}`
+    };
+}
+
+function logout() {
+    TokenManager.removeToken();
+    window.location.href = 'login.html';
+}
+
 function getUserId() {
-    return document.getElementById('userId').value;
+    const user = TokenManager.getUserFromToken();
+    return user ? user.id : null;
 }
 
 function showCreateGameModal() {
@@ -53,7 +111,7 @@ function playVideo(replayId) {
 async function loadGames() {
     try {
         const response = await fetch(`${API_BASE}/games`, {
-            headers: { 'X-User-ID': getUserId() }
+            headers: getAuthHeaders()
         });
         const games = await response.json();
         
@@ -88,7 +146,7 @@ async function createGame() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-ID': getUserId()
+                ...getAuthHeaders()
             },
             body: JSON.stringify({ name })
         });
@@ -118,7 +176,7 @@ async function selectGame(gameId, gameName) {
 
     try {
         const response = await fetch(`${API_BASE}/games/${gameId}/replays?limit=100`, {
-            headers: { 'X-User-ID': getUserId() }
+            headers: getAuthHeaders()
         });
         const replays = await response.json() || [];
 
@@ -215,7 +273,7 @@ async function uploadReplay() {
     try {
         const response = await fetch(`${API_BASE}/games/${currentGameId}/replays`, {
             method: 'POST',
-            headers: { 'X-User-ID': getUserId() },
+            headers: getAuthHeaders(),
             body: formData
         });
 
@@ -253,7 +311,7 @@ async function deleteReplay(replayId) {
     try {
         const response = await fetch(`${API_BASE}/replays/${replayId}`, {
             method: 'DELETE',
-            headers: { 'X-User-ID': getUserId() }
+            headers: getAuthHeaders()
         });
 
         if (!response.ok) {
@@ -281,7 +339,7 @@ async function deleteGame(gameId, gameName) {
     try {
         const response = await fetch(`${API_BASE}/games/${gameId}`, {
             method: 'DELETE',
-            headers: { 'X-User-ID': getUserId() }
+            headers: getAuthHeaders()
         });
 
         if (response.ok) {
@@ -314,7 +372,7 @@ async function updateGame() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-ID': getUserId()
+                ...getAuthHeaders()
             },
             body: JSON.stringify({ name })
         });
@@ -343,7 +401,7 @@ async function updateReplay() {
 
         const response = await fetch(`${API_BASE}/replays/${currentReplayId}`, {
             method: 'PUT',
-            headers: { 'X-User-ID': getUserId() },
+            headers: getAuthHeaders(),
             body: formData
         });
 
@@ -361,6 +419,12 @@ async function updateReplay() {
         console.error('Error updating replay:', error);
         alert('Ошибка обновления реплея');
     }
+}
+
+// Display user info
+const user = TokenManager.getUserFromToken();
+if (user) {
+    document.getElementById('userDisplay').textContent = `👤 ${user.username || user.email}`;
 }
 
 loadGames();
