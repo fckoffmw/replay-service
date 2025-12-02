@@ -65,7 +65,7 @@ const TokenManager = {
 
 // Check authentication on page load
 if (!TokenManager.isAuthenticated()) {
-    window.location.href = 'login.html';
+    window.location.href = '/html/login.html';
 }
 
 function getAuthHeaders() {
@@ -77,7 +77,7 @@ function getAuthHeaders() {
 
 function logout() {
     TokenManager.removeToken();
-    window.location.href = 'login.html';
+    window.location.href = '/html/login.html';
 }
 
 function getUserId() {
@@ -125,7 +125,7 @@ function isVideoFile(filename) {
 }
 
 function playVideo(replayId) {
-    window.location.href = `player.html?id=${replayId}`;
+    window.location.href = `/html/player.html?id=${replayId}`;
 }
 
 async function loadGames() {
@@ -137,7 +137,7 @@ async function loadGames() {
         if (response.status === 401) {
             // Token invalid or expired
             TokenManager.removeToken();
-            window.location.href = 'login.html';
+            window.location.href = '/html/login.html';
             return;
         }
         
@@ -331,7 +331,7 @@ function downloadReplay(replayId) {
 
 function playReplay(replayId) {
     // Для видео - открыть страницу плеера, для остальных - просто открыть файл
-    window.location.href = `player.html?id=${replayId}`;
+    window.location.href = `/html/player.html?id=${replayId}`;
 }
 
 async function deleteReplay(replayId) {

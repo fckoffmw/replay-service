@@ -22,6 +22,11 @@ chmod +x start.sh
 ./start.sh
 ```
 
+### Запуск руками
+```bash
+docker compose -f deploy/docker-compose/docker-compose.yml up --build
+```
+
 Сервис будет доступен:
 - API: `http://localhost:8080/api/v1`
 - Веб-интерфейс: `client/index.html` (открыть в браузере)

@@ -4,97 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Replay Service</title>
-    <link rel="stylesheet" href="style.css">
+    <script>
+        // Redirect to appropriate page based on authentication
+        const token = localStorage.getItem('jwt_token');
+        if (token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    if (Date.now() < payload.exp * 1000) {
+                        window.location.href = 'html/index.html';
+                    } else {
+                        window.location.href = 'html/login.html';
+                    }
+                } else {
+                    window.location.href = 'html/login.html';
+                }
+            } catch (e) {
+                window.location.href = 'html/login.html';
+            }
+        } else {
+            window.location.href = 'html/login.html';
+        }
+    </script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>🎮 Replay Service</h1>
-                    <p>Управление игровыми реплеями</p>
-                </div>
-                <div class="user-info">
-                    <span id="userDisplay" style="margin-right: 15px; font-weight: 500;"></span>
-                    <button class="btn btn-danger btn-small" onclick="logout()">Выйти</button>
-                </div>
-            </div>
-        </header>
-
-        <div class="main-content">
-            <aside class="sidebar">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2 style="margin: 0;">Игры</h2>
-                    <button class="btn btn-success btn-small" onclick="showCreateGameModal()">+ Добавить</button>
-                </div>
-                <ul class="game-list" id="gameList">
-                    <li class="loading">Загрузка...</li>
-                </ul>
-            </aside>
-
-            <main class="content">
-                <div id="contentArea">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📁</div>
-                        <p>Выберите игру из списка слева</p>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <div class="modal" id="createGameModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Создать игру</h2>
-            </div>
-            <div class="form-group">
-                <label>Название игры</label>
-                <input type="text" id="newGameName" placeholder="Например: Dota 2">
-            </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="hideCreateGameModal()">Отмена</button>
-                <button class="btn btn-success" onclick="createGame()">Создать</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="editGameModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Редактировать игру</h2>
-            </div>
-            <div class="form-group">
-                <label>Название игры</label>
-                <input type="text" id="editGameName" placeholder="Например: Dota 2">
-            </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="hideEditGameModal()">Отмена</button>
-                <button class="btn btn-primary" onclick="updateGame()">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="editReplayModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Редактировать реплей</h2>
-            </div>
-            <div class="form-group">
-                <label>Название</label>
-                <input type="text" id="editReplayTitle" placeholder="Название реплея">
-            </div>
-            <div class="form-group">
-                <label>Комментарий</label>
-                <textarea id="editReplayComment" placeholder="Описание реплея..."></textarea>
-            </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="hideEditReplayModal()">Отмена</button>
-                <button class="btn btn-primary" onclick="updateReplay()">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <p style="text-align: center; margin-top: 50px; font-family: sans-serif; color: #666;">Перенаправление...</p>
 </body>
 </html>

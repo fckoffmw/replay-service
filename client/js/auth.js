@@ -123,7 +123,7 @@ if (document.getElementById('loginForm')) {
             TokenManager.setToken(data.token);
             
             // Redirect to main page
-            window.location.href = 'index.html';
+            window.location.href = '/html/index.html';
             
         } catch (error) {
             console.error('Login error:', error);
@@ -189,7 +189,7 @@ if (document.getElementById('registerForm')) {
             TokenManager.setToken(data.token);
             
             // Redirect to main page
-            window.location.href = 'index.html';
+            window.location.href = '/html/index.html';
             
         } catch (error) {
             console.error('Registration error:', error);
@@ -203,7 +203,7 @@ if (document.getElementById('registerForm')) {
 // Check if already authenticated
 if (window.location.pathname.includes('login.html') || window.location.pathname.includes('register.html')) {
     if (TokenManager.isAuthenticated()) {
-        window.location.href = 'index.html';
+        window.location.href = '/html/index.html';
     }
 }
 
