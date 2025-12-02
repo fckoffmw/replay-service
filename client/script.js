@@ -125,7 +125,7 @@ function isVideoFile(filename) {
 }
 
 function playVideo(replayId) {
-    window.location.href = `player.html?id=${replayId}&userId=${getUserId()}`;
+    window.location.href = `player.html?id=${replayId}`;
 }
 
 async function loadGames() {
@@ -325,12 +325,13 @@ async function uploadReplay() {
 }
 
 function downloadReplay(replayId) {
-    window.open(`${API_BASE}/replays/${replayId}/file?download=true`, '_blank');
+    const token = TokenManager.getToken();
+    window.open(`${API_BASE}/replays/${replayId}/file?download=true&token=${encodeURIComponent(token)}`, '_blank');
 }
 
 function playReplay(replayId) {
     // Для видео - открыть страницу плеера, для остальных - просто открыть файл
-    window.location.href = `player.html?id=${replayId}&userId=${getUserId()}`;
+    window.location.href = `player.html?id=${replayId}`;
 }
 
 async function deleteReplay(replayId) {
