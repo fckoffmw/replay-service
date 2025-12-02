@@ -30,7 +30,7 @@ vendor/
 .DS_Store
 Thumbs.db
 
-storage/
+/storage/
 
 # Env files (секреты в .env НЕ коммитим)
 .env.local
