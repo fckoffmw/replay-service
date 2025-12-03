@@ -119,6 +119,55 @@ function hideEditReplayModal() {
     document.getElementById('editReplayModal').classList.remove('active');
 }
 
+function toggleUploadForm() {
+    const form = document.getElementById('uploadForm');
+    form.classList.toggle('collapsed');
+}
+
+// Toast notification system
+function showToast(message, type = 'info', title = '') {
+    // Create toast container if it doesn't exist
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        info: 'ℹ️',
+        warning: '⚠️'
+    };
+
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-content">
+            ${title ? `<div class="toast-title">${title}</div>` : ''}
+            <div class="toast-message">${message}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => {
+            container.removeChild(toast);
+            if (container.children.length === 0) {
+                document.body.removeChild(container);
+            }
+        }, 300);
+    }, 4000);
+}
+
 function isVideoFile(filename) {
     const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v'];
     return videoExtensions.some(ext => filename.toLowerCase().endsWith(ext));
@@ -165,7 +214,7 @@ async function loadGames() {
 async function createGame() {
     const name = document.getElementById('newGameName').value.trim();
     if (!name) {
-        alert('Введите название игры');
+        showToast('Введите название игры', 'warning', 'Название не указано');
         return;
     }
 
@@ -181,13 +230,14 @@ async function createGame() {
         
         if (response.ok) {
             hideCreateGameModal();
+            showToast(`Игра "${name}" успешно создана!`, 'success', 'Успешно');
             await loadGames();
         } else {
-            alert('Ошибка создания игры');
+            showToast('Не удалось создать игру', 'error', 'Ошибка');
         }
     } catch (error) {
         console.error('Error creating game:', error);
-        alert('Ошибка создания игры');
+        showToast('Ошибка создания игры: ' + error.message, 'error', 'Ошибка');
     }
 }
 
@@ -217,21 +267,29 @@ async function selectGame(gameId, gameName) {
                 </div>
             </div>
 
-            <div class="upload-form">
-                <h3 style="margin-bottom: 15px;">Загрузить реплей</h3>
-                <div class="form-group">
-                    <label>Файл</label>
-                    <input type="file" id="replayFile">
+            <div class="upload-form collapsed" id="uploadForm">
+                <div class="upload-form-header" onclick="toggleUploadForm()">
+                    <div class="upload-form-title">
+                        <span>📤</span>
+                        <span>Загрузить реплей</span>
+                    </div>
+                    <div class="upload-form-toggle">▼</div>
                 </div>
-                <div class="form-group">
-                    <label>Название (опционально)</label>
-                    <input type="text" id="replayTitle" placeholder="Например: Эпичная победа">
+                <div class="upload-form-content">
+                    <div class="form-group">
+                        <label>Файл</label>
+                        <input type="file" id="replayFile">
+                    </div>
+                    <div class="form-group">
+                        <label>Название (опционально)</label>
+                        <input type="text" id="replayTitle" placeholder="Например: Эпичная победа">
+                    </div>
+                    <div class="form-group">
+                        <label>Комментарий (опционально)</label>
+                        <textarea id="replayComment" placeholder="Описание реплея..."></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="uploadReplay()">Загрузить</button>
                 </div>
-                <div class="form-group">
-                    <label>Комментарий (опционально)</label>
-                    <textarea id="replayComment" placeholder="Описание реплея..."></textarea>
-                </div>
-                <button class="btn btn-success" onclick="uploadReplay()">Загрузить</button>
             </div>
 
             <h3 style="margin: 20px 0 15px 0;">Реплеи (${replays.length})</h3>
@@ -287,11 +345,22 @@ async function uploadReplay() {
     const fileInput = document.getElementById('replayFile');
     const title = document.getElementById('replayTitle').value;
     const comment = document.getElementById('replayComment').value;
+    const uploadButton = event.target;
 
     if (!fileInput.files[0]) {
-        alert('Выберите файл');
+        showToast('Пожалуйста, выберите файл для загрузки', 'warning', 'Файл не выбран');
         return;
     }
+
+    // Disable button and show loading state
+    uploadButton.disabled = true;
+    uploadButton.classList.add('loading');
+    uploadButton.setAttribute('data-original-text', uploadButton.textContent);
+    
+    const fileName = fileInput.files[0].name;
+    const fileSize = (fileInput.files[0].size / 1024 / 1024).toFixed(2);
+    
+    showToast(`Загрузка файла "${fileName}" (${fileSize} MB)...`, 'info', 'Подождите');
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
@@ -308,8 +377,22 @@ async function uploadReplay() {
         if (!response.ok) {
             const error = await response.json();
             console.error('Upload error:', error);
-            alert('Ошибка загрузки файла');
+            showToast(error.error || 'Не удалось загрузить файл', 'error', 'Ошибка загрузки');
             return;
+        }
+
+        // Success!
+        showToast(`Реплей "${title || fileName}" успешно загружен!`, 'success', 'Успешно');
+        
+        // Clear form
+        fileInput.value = '';
+        document.getElementById('replayTitle').value = '';
+        document.getElementById('replayComment').value = '';
+        
+        // Collapse upload form
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            uploadForm.classList.add('collapsed');
         }
 
         const activeGame = document.querySelector('.game-item.active');
@@ -320,7 +403,11 @@ async function uploadReplay() {
         await loadGames();
     } catch (error) {
         console.error('Error uploading replay:', error);
-        alert('Ошибка загрузки файла: ' + error.message);
+        showToast('Ошибка загрузки файла: ' + error.message, 'error', 'Ошибка');
+    } finally {
+        // Re-enable button
+        uploadButton.disabled = false;
+        uploadButton.classList.remove('loading');
     }
 }
 
@@ -346,9 +433,11 @@ async function deleteReplay(replayId) {
         if (!response.ok) {
             const error = await response.json();
             console.error('Delete error:', error);
-            alert('Ошибка удаления');
+            showToast('Не удалось удалить реплей', 'error', 'Ошибка');
             return;
         }
+
+        showToast('Реплей успешно удален', 'success', 'Успешно');
 
         const activeGame = document.querySelector('.game-item.active');
         if (activeGame && currentGameId) {
@@ -358,7 +447,7 @@ async function deleteReplay(replayId) {
         await loadGames();
     } catch (error) {
         console.error('Error deleting replay:', error);
-        alert('Ошибка удаления: ' + error.message);
+        showToast('Ошибка удаления: ' + error.message, 'error', 'Ошибка');
     }
 }
 
@@ -372,6 +461,7 @@ async function deleteGame(gameId, gameName) {
         });
 
         if (response.ok) {
+            showToast(`Игра "${gameName}" и все её реплеи удалены`, 'success', 'Успешно');
             currentGameId = null;
             document.getElementById('contentArea').innerHTML = `
                 <div class="empty-state">
@@ -381,18 +471,18 @@ async function deleteGame(gameId, gameName) {
             `;
             await loadGames();
         } else {
-            alert('Ошибка удаления игры');
+            showToast('Не удалось удалить игру', 'error', 'Ошибка');
         }
     } catch (error) {
         console.error('Error deleting game:', error);
-        alert('Ошибка удаления игры');
+        showToast('Ошибка удаления игры: ' + error.message, 'error', 'Ошибка');
     }
 }
 
 async function updateGame() {
     const name = document.getElementById('editGameName').value.trim();
     if (!name) {
-        alert('Введите название игры');
+        showToast('Введите название игры', 'warning', 'Название не указано');
         return;
     }
 
@@ -408,14 +498,15 @@ async function updateGame() {
 
         if (response.ok) {
             hideEditGameModal();
+            showToast(`Игра переименована в "${name}"`, 'success', 'Успешно');
             await loadGames();
             await selectGame(currentGameId, name);
         } else {
-            alert('Ошибка обновления игры');
+            showToast('Не удалось обновить игру', 'error', 'Ошибка');
         }
     } catch (error) {
         console.error('Error updating game:', error);
-        alert('Ошибка обновления игры');
+        showToast('Ошибка обновления игры: ' + error.message, 'error', 'Ошибка');
     }
 }
 
@@ -436,17 +527,18 @@ async function updateReplay() {
 
         if (response.ok) {
             hideEditReplayModal();
+            showToast('Реплей успешно обновлен', 'success', 'Успешно');
             const activeGame = document.querySelector('.game-item.active');
             if (activeGame && currentGameId) {
                 const gameName = activeGame.querySelector('.game-name').textContent;
                 await selectGame(currentGameId, gameName);
             }
         } else {
-            alert('Ошибка обновления реплея');
+            showToast('Не удалось обновить реплей', 'error', 'Ошибка');
         }
     } catch (error) {
         console.error('Error updating replay:', error);
-        alert('Ошибка обновления реплея');
+        showToast('Ошибка обновления реплея: ' + error.message, 'error', 'Ошибка');
     }
 }
 
