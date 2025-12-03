@@ -124,6 +124,47 @@ function toggleUploadForm() {
     form.classList.toggle('collapsed');
 }
 
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const fileInfo = document.getElementById('fileInfo');
+    
+    if (!file) {
+        fileInfo.style.display = 'none';
+        return;
+    }
+
+    // Validate file type
+    const allowedExtensions = ['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.avi', '.mkv', '.m4v'];
+    const fileName = file.name.toLowerCase();
+    const isValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    const isVideoMimeType = file.type.startsWith('video/');
+
+    if (!isValidExtension && !isVideoMimeType) {
+        fileInfo.style.display = 'block';
+        fileInfo.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        fileInfo.style.background = 'rgba(239, 68, 68, 0.1)';
+        fileInfo.style.color = '#fca5a5';
+        fileInfo.innerHTML = `
+            <strong>❌ Неверный формат файла</strong><br>
+            Можно загружать только видео файлы
+        `;
+        event.target.value = '';
+        return;
+    }
+
+    // Show file info
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    fileInfo.style.display = 'block';
+    fileInfo.style.borderColor = 'rgba(167, 139, 250, 0.3)';
+    fileInfo.style.background = 'rgba(167, 139, 250, 0.1)';
+    fileInfo.style.color = '#c4b5fd';
+    fileInfo.innerHTML = `
+        <strong>✅ Файл выбран:</strong><br>
+        📁 ${file.name}<br>
+        💾 Размер: ${fileSize} MB
+    `;
+}
+
 // Toast notification system
 function showToast(message, type = 'info', title = '') {
     // Create toast container if it doesn't exist
@@ -169,7 +210,7 @@ function showToast(message, type = 'info', title = '') {
 }
 
 function isVideoFile(filename) {
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v'];
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.avi', '.mkv', '.m4v'];
     return videoExtensions.some(ext => filename.toLowerCase().endsWith(ext));
 }
 
@@ -277,8 +318,12 @@ async function selectGame(gameId, gameName) {
                 </div>
                 <div class="upload-form-content">
                     <div class="form-group">
-                        <label>Файл</label>
-                        <input type="file" id="replayFile">
+                        <label>Файл (только видео)</label>
+                        <input type="file" id="replayFile" accept="video/*,.mp4,.webm,.ogg,.mov,.avi,.mkv,.m4v" onchange="handleFileSelect(event)">
+                        <small style="color: #a78bfa; font-size: 12px; margin-top: 4px; display: block;">
+                            Поддерживаемые форматы: MP4, WebM, OGG, MOV, AVI, MKV, M4V
+                        </small>
+                        <div id="fileInfo" style="display: none; margin-top: 10px; padding: 10px; background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: 8px; color: #c4b5fd; font-size: 13px;"></div>
                     </div>
                     <div class="form-group">
                         <label>Название (опционально)</label>
@@ -352,13 +397,30 @@ async function uploadReplay() {
         return;
     }
 
+    // Validate file type
+    const file = fileInput.files[0];
+    const allowedExtensions = ['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.avi', '.mkv', '.m4v'];
+    const fileNameLower = file.name.toLowerCase();
+    const isValidExtension = allowedExtensions.some(ext => fileNameLower.endsWith(ext));
+    const isVideoMimeType = file.type.startsWith('video/');
+
+    if (!isValidExtension && !isVideoMimeType) {
+        showToast(
+            'Можно загружать только видео файлы (MP4, WebM, OGG, MOV, AVI, MKV, M4V)', 
+            'error', 
+            'Неверный формат файла'
+        );
+        fileInput.value = ''; // Clear the input
+        return;
+    }
+
     // Disable button and show loading state
     uploadButton.disabled = true;
     uploadButton.classList.add('loading');
     uploadButton.setAttribute('data-original-text', uploadButton.textContent);
     
-    const fileName = fileInput.files[0].name;
-    const fileSize = (fileInput.files[0].size / 1024 / 1024).toFixed(2);
+    const fileName = file.name;
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
     
     showToast(`Загрузка файла "${fileName}" (${fileSize} MB)...`, 'info', 'Подождите');
 
@@ -388,6 +450,12 @@ async function uploadReplay() {
         fileInput.value = '';
         document.getElementById('replayTitle').value = '';
         document.getElementById('replayComment').value = '';
+        
+        // Hide file info
+        const fileInfo = document.getElementById('fileInfo');
+        if (fileInfo) {
+            fileInfo.style.display = 'none';
+        }
         
         // Collapse upload form
         const uploadForm = document.getElementById('uploadForm');
