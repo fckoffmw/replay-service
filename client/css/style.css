@@ -231,7 +231,7 @@ h2 {
 .replay-video-preview {
     width: 200px;
     height: 150px;
-    background: #000;
+    background: linear-gradient(135deg, rgba(26, 11, 46, 0.9) 0%, rgba(74, 44, 109, 0.9) 100%);
     border-radius: 10px;
     border: 2px solid rgba(138, 92, 246, 0.3);
     position: relative;
@@ -240,12 +240,45 @@ h2 {
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.replay-video-preview:hover {
+    transform: scale(1.05);
+    border-color: rgba(167, 139, 250, 0.6);
+    box-shadow: 0 8px 25px rgba(138, 92, 246, 0.4);
+}
+
+.video-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(26, 11, 46, 0.95) 0%, rgba(74, 44, 109, 0.95) 100%);
+    z-index: 1;
+}
+
+.video-placeholder-icon {
+    font-size: 48px;
+    opacity: 0.5;
+    filter: drop-shadow(0 0 10px rgba(138, 92, 246, 0.3));
 }
 
 .replay-video-preview video {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
+    z-index: 2;
+}
+
+.replay-video-preview:hover video {
+    transform: scale(1.1);
 }
 
 .replay-video-preview .play-overlay {
@@ -254,44 +287,102 @@ h2 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6));
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s ease;
+    z-index: 3;
 }
 
-.replay-video-preview .play-overlay:hover {
-    background: rgba(0, 0, 0, 0.6);
+.replay-video-preview:hover .play-overlay {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7));
 }
 
 .replay-video-preview .play-button {
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.9);
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.95), rgba(139, 92, 246, 0.95));
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(167, 139, 250, 0.4);
+    backdrop-filter: blur(10px);
+    position: relative;
 }
 
-.replay-video-preview .play-overlay:hover .play-button {
-    transform: scale(1.1);
+.replay-video-preview .play-button::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(167, 139, 250, 0.4);
+    animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.replay-video-preview:hover .play-button {
+    transform: scale(1.15);
+    box-shadow: 0 6px 30px rgba(167, 139, 250, 0.6);
+    background: linear-gradient(135deg, rgba(196, 181, 253, 0.95), rgba(167, 139, 250, 0.95));
 }
 
 .replay-video-preview .play-icon {
     width: 0;
     height: 0;
-    border-left: 20px solid #333;
-    border-top: 12px solid transparent;
-    border-bottom: 12px solid transparent;
-    margin-left: 5px;
+    border-left: 22px solid white;
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+    margin-left: 6px;
+}
+
+.replay-video-preview .video-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.9), rgba(139, 92, 246, 0.9));
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 10px rgba(167, 139, 250, 0.3);
+    z-index: 4;
+}
+
+.replay-video-preview .video-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+    z-index: 4;
 }
 
 .replay-video-preview .no-video {
-    color: #999;
+    color: #c4b5fd;
     font-size: 14px;
     text-align: center;
 }

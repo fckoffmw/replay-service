@@ -343,7 +343,8 @@ async function selectGame(gameId, gameName) {
                     '<div class="empty-state"><div class="empty-state-icon">📄</div><p>Нет реплеев</p></div>' :
                     replays.map(replay => {
                         const isVideo = isVideoFile(replay.original_name);
-                        const videoUrl = `${API_BASE}/replays/${replay.id}/file`;
+                        const token = TokenManager.getToken();
+                        const videoUrl = `${API_BASE}/replays/${replay.id}/file?token=${encodeURIComponent(token)}`;
                         
                         return `
                             <div class="replay-card">
@@ -363,13 +364,18 @@ async function selectGame(gameId, gameName) {
                                     </div>
                                 </div>
                                 ${isVideo ? `
-                                    <div class="replay-video-preview">
-                                        <video src="${videoUrl}" preload="metadata"></video>
-                                        <div class="play-overlay" onclick="playVideo('${replay.id}')">
+                                    <div class="replay-video-preview" onclick="playVideo('${replay.id}')">
+                                        <div class="video-placeholder">
+                                            <div class="video-placeholder-icon">🎬</div>
+                                        </div>
+                                        <video src="${videoUrl}" preload="metadata" id="video-${replay.id}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+                                        <div class="video-badge">VIDEO</div>
+                                        <div class="play-overlay">
                                             <div class="play-button">
                                                 <div class="play-icon"></div>
                                             </div>
                                         </div>
+                                        <div class="video-duration" id="duration-${replay.id}">--:--</div>
                                     </div>
                                 ` : ''}
                             </div>
@@ -378,6 +384,39 @@ async function selectGame(gameId, gameName) {
                 }
             </div>
         `;
+        
+        // Load video durations
+        replays.forEach(replay => {
+            if (isVideoFile(replay.original_name)) {
+                const video = document.getElementById(`video-${replay.id}`);
+                const durationEl = document.getElementById(`duration-${replay.id}`);
+                
+                if (video && durationEl) {
+                    video.addEventListener('loadedmetadata', () => {
+                        const duration = video.duration;
+                        if (duration && !isNaN(duration) && isFinite(duration)) {
+                            const minutes = Math.floor(duration / 60);
+                            const seconds = Math.floor(duration % 60);
+                            durationEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        } else {
+                            durationEl.textContent = 'VIDEO';
+                        }
+                    });
+                    
+                    video.addEventListener('error', () => {
+                        console.log(`Could not load video metadata for replay ${replay.id}`);
+                        durationEl.textContent = 'VIDEO';
+                    });
+                    
+                    // Fallback if metadata doesn't load within 3 seconds
+                    setTimeout(() => {
+                        if (durationEl.textContent === '--:--') {
+                            durationEl.textContent = 'VIDEO';
+                        }
+                    }, 3000);
+                }
+            }
+        });
     } catch (error) {
         console.error('Error loading replays:', error);
         contentArea.innerHTML = '<div style="color: red; padding: 20px;">Ошибка загрузки реплеев</div>';
