@@ -1,15 +1,11 @@
 package handlers
 
-import (
-	"github.com/fckoffmw/replay-service/server/internal/services"
-)
-
 type Handler struct {
-	gameService   *services.GameService
-	replayService *services.ReplayService
+	gameService   GameServiceInterface
+	replayService ReplayServiceInterface
 }
 
-func NewHandler(gameService *services.GameService, replayService *services.ReplayService) *Handler {
+func NewHandler(gameService GameServiceInterface, replayService ReplayServiceInterface) *Handler {
 	return &Handler{
 		gameService:   gameService,
 		replayService: replayService,

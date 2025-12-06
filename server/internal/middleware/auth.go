@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fckoffmw/replay-service/server/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,7 +12,7 @@ const (
 	contextKeyUserID = "user_id"
 )
 
-func AuthMiddleware(authService *services.AuthService, logger *slog.Logger) gin.HandlerFunc {
+func AuthMiddleware(authService AuthServiceInterface, logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := extractToken(c)
 		if token == "" {

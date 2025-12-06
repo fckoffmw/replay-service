@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/fckoffmw/replay-service/server/internal/models"
-	"github.com/fckoffmw/replay-service/server/internal/repository"
-	"github.com/fckoffmw/replay-service/server/internal/storage"
 	"github.com/google/uuid"
 )
 
@@ -17,14 +15,14 @@ const (
 )
 
 type ReplayService struct {
-	replayRepo *repository.ReplayRepository
-	storage    *storage.FileStorage
+	replayRepo ReplayRepositoryInterface
+	storage    FileStorageInterface
 	logger     *slog.Logger
 }
 
 func NewReplayService(
-	replayRepo *repository.ReplayRepository,
-	storage *storage.FileStorage,
+	replayRepo ReplayRepositoryInterface,
+	storage FileStorageInterface,
 	logger *slog.Logger,
 ) *ReplayService {
 	return &ReplayService{

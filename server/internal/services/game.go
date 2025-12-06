@@ -5,22 +5,20 @@ import (
 	"log/slog"
 
 	"github.com/fckoffmw/replay-service/server/internal/models"
-	"github.com/fckoffmw/replay-service/server/internal/repository"
-	"github.com/fckoffmw/replay-service/server/internal/storage"
 	"github.com/google/uuid"
 )
 
 type GameService struct {
-	gameRepo   *repository.GameRepository
-	replayRepo *repository.ReplayRepository
-	storage    *storage.FileStorage
+	gameRepo   GameRepositoryInterface
+	replayRepo ReplayRepositoryInterface
+	storage    FileStorageInterface
 	logger     *slog.Logger
 }
 
 func NewGameService(
-	gameRepo *repository.GameRepository,
-	replayRepo *repository.ReplayRepository,
-	storage *storage.FileStorage,
+	gameRepo GameRepositoryInterface,
+	replayRepo ReplayRepositoryInterface,
+	storage FileStorageInterface,
 	logger *slog.Logger,
 ) *GameService {
 	return &GameService{
